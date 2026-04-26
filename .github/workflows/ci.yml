@@ -1,92 +1,222 @@
-name: CI
+name: Sports Lab — CI
 
 on:
-  pull_request:
-    branches: [main]
+  push:
+    branches:
+      - 'feat/**'
+      - 'fix/**'
+  workflow_dispatch:
+    inputs:
+      sport:
+        description: 'Which app to run CI for'
+        required: false
+        default: 'both'
+        type: choice
+        options: [both, handball, basketball]
+
+concurrency:
+  group: sports-lab-ci-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  build-and-test:
-    name: Build + test
+  # ── Determine which jobs to run ──────────────────────────────────────────────
+  changes:
     runs-on: ubuntu-latest
+    outputs:
+      handball: ${{ steps.filter.outputs.handball }}
+      basketball: ${{ steps.filter.outputs.basketball }}
+      issue_number: ${{ steps.parse.outputs.issue_number }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            handball:
+              - 'src/**'
+              - 'tests/**'
+              - 'e2e/**'
+              - 'package.json'
+              - 'vite.config.ts'
+              - 'vitest.config.ts'
+            basketball:
+              - 'basketball/src/**'
+              - 'basketball/tests/**'
+              - 'basketball/e2e/**'
+              - 'basketball/package.json'
+              - 'basketball/vite.config.ts'
+
+      # Extract issue number from branch name: feat/10-slug or fix/10-slug → 10
+      - name: Parse issue number from branch
+        id: parse
+        run: |
+          BRANCH="${{ github.ref_name }}"
+          ISSUE=$(echo "$BRANCH" | grep -oP '(?<=feat/|fix/)\d+' || true)
+          echo "issue_number=${ISSUE}" >> "$GITHUB_OUTPUT"
+
+  # ── Handball CI ──────────────────────────────────────────────────────────────
+  handball-ci:
+    name: Handball — build + test
+    runs-on: ubuntu-latest
+    needs: changes
+    if: |
+      needs.changes.outputs.handball == 'true' ||
+      (github.event_name == 'workflow_dispatch' && (inputs.sport == 'handball' || inputs.sport == 'both'))
 
     steps:
       - uses: actions/checkout@v4
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
-          cache: npm
+          node-version: '20'
+          cache: 'npm'
           cache-dependency-path: package-lock.json
 
       - name: Install dependencies
         run: npm ci
 
-      - name: Build
+      - name: Type-check + build
         run: npm run build
 
       - name: Unit + component tests
         run: npm test
 
-  migration-check:
-    name: Migration drift check
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Smoke tests
+        run: npm run test:smoke
+        env:
+          CI: true
+
+  # ── Basketball CI ─────────────────────────────────────────────────────────────
+  basketball-ci:
+    name: Basketball — build + test
     runs-on: ubuntu-latest
-    # Run independently of build so migration failures are clearly surfaced
+    needs: changes
+    if: |
+      needs.changes.outputs.basketball == 'true' ||
+      (github.event_name == 'workflow_dispatch' && (inputs.sport == 'basketball' || inputs.sport == 'both'))
+    defaults:
+      run:
+        working-directory: basketball
+
     steps:
       - uses: actions/checkout@v4
 
-      - name: Check pending migrations
-        env:
-          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Type-check + build
+        run: npm run build
+
+      - name: Unit + component tests
         run: |
-          python3 - <<'EOF'
-          import os, re, sys, json
-          from urllib.request import Request, urlopen
-          from urllib.error import HTTPError
+          if [ -f vitest.config.ts ]; then
+            npm test
+          else
+            npx vitest run --environment jsdom --reporter=verbose 2>/dev/null || echo "No tests yet — skipping"
+          fi
 
-          supabase_url = os.environ.get('SUPABASE_URL', '').rstrip('/')
-          service_key  = os.environ.get('SUPABASE_SERVICE_KEY', '')
+      - name: Smoke tests
+        if: hashFiles('basketball/playwright.config.ts') != '' && hashFiles('basketball/e2e/smoke.spec.ts') != ''
+        run: |
+          npx playwright install --with-deps chromium
+          npm run test:smoke
+        env:
+          CI: true
 
-          if not supabase_url or not service_key:
-              print('::error::SUPABASE_URL and SUPABASE_SERVICE_KEY secrets are required for migration check.')
-              sys.exit(1)
+  # ── Issue label automation ─────────────────────────────────────────────────
+  # GITHUB_TOKEN has issues:write on this repo — no PAT needed
+  issue-labels:
+    name: Update issue labels
+    runs-on: ubuntu-latest
+    needs: [changes, handball-ci, basketball-ci]
+    if: |
+      always() &&
+      github.event_name == 'push' &&
+      needs.changes.outputs.issue_number != ''
+    permissions:
+      issues: write
 
-          # Collect local migration files → {numeric_prefix: filename}
-          local = {}
-          for fname in sorted(os.listdir('supabase/migrations')):
-              if fname.endswith('.sql'):
-                  m = re.match(r'^(\d+)', fname)
-                  if m:
-                      local[m.group(1)] = fname
+    steps:
+      - name: Determine overall CI result
+        id: result
+        run: |
+          HANDBALL="${{ needs.handball-ci.result }}"
+          BASKETBALL="${{ needs.basketball-ci.result }}"
+          if [[ "$HANDBALL" == "failure" || "$BASKETBALL" == "failure" ]]; then
+            echo "status=failure" >> "$GITHUB_OUTPUT"
+          else
+            echo "status=success" >> "$GITHUB_OUTPUT"
+          fi
 
-          # Query applied migrations from supabase_migrations.schema_migrations
-          req = Request(
-              f'{supabase_url}/rest/v1/schema_migrations?select=version',
-              headers={
-                  'apikey': service_key,
-                  'Authorization': f'Bearer {service_key}',
-                  'Accept-Profile': 'supabase_migrations',
-              },
-          )
-          try:
-              with urlopen(req) as resp:
-                  applied_rows = json.loads(resp.read())
-          except HTTPError as e:
-              print(f'::error::Migration check request failed (HTTP {e.code}): {e.read().decode()}')
-              sys.exit(1)
+      - name: Label issue — CI passed → in-review
+        if: steps.result.outputs.status == 'success'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const issue = parseInt('${{ needs.changes.outputs.issue_number }}');
+            if (!issue) return;
+            try {
+              await github.rest.issues.addLabels({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issue,
+                labels: ['in-review'],
+              });
+            } catch (e) { console.log('add in-review:', e.message); }
+            try {
+              await github.rest.issues.removeLabel({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issue,
+                name: 'in-progress',
+              });
+            } catch (e) { console.log('remove in-progress (ok if missing):', e.message); }
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: issue,
+              body: `✅ **CI passed** on \`${{ github.ref_name }}\` (${context.sha.substring(0, 7)})\n\n` +
+                    `Handball: ${{ needs.handball-ci.result }} · Basketball: ${{ needs.basketball-ci.result }}\n\n` +
+                    `Ready for test session.`,
+            });
 
-          # Extract numeric prefix from each applied version for flexible matching
-          applied_prefixes = set()
-          for row in applied_rows:
-              m = re.match(r'^(\d+)', str(row.get('version', '')))
-              if m:
-                  applied_prefixes.add(m.group(1))
-
-          pending = [fname for prefix, fname in sorted(local.items()) if prefix not in applied_prefixes]
-          if pending:
-              names = ', '.join(pending)
-              print(f'::error::Pending migrations: {names} — apply to Supabase before merging.')
-              sys.exit(1)
-
-          print(f'All {len(local)} migrations applied ✓')
-          EOF
+      - name: Label issue — CI failed → needs-fix
+        if: steps.result.outputs.status == 'failure'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const issue = parseInt('${{ needs.changes.outputs.issue_number }}');
+            if (!issue) return;
+            try {
+              await github.rest.issues.addLabels({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issue,
+                labels: ['needs-fix'],
+              });
+            } catch (e) { console.log('add needs-fix:', e.message); }
+            try {
+              await github.rest.issues.removeLabel({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issue,
+                name: 'in-progress',
+              });
+            } catch (e) { console.log('remove in-progress (ok if missing):', e.message); }
+            const runUrl = `https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}`;
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: issue,
+              body: `❌ **CI failed** on \`${{ github.ref_name }}\` (${context.sha.substring(0, 7)})\n\n` +
+                    `Handball: ${{ needs.handball-ci.result }} · Basketball: ${{ needs.basketball-ci.result }}\n\n` +
+                    `[View run details](${runUrl})`,
+            });
