@@ -1,16 +1,33 @@
-# HandBallLab
+# Sports Lab
 
-A mobile-first PWA for handball teams: live scoreboard, tournament tracker, and player profiles.
+Mobile-first PWA scoreboard, tournament tracker, and player profiles — handball + basketball.
 
-Built as a family learning project — designed to be used during real league games and tournaments by parents and kids on phones and tablets.
+Built as a family learning project — designed to be used during real games and tournaments by parents and kids on phones and tablets.
 
-## Features (Planned)
+## Sports
 
-- **Scoreboard** — Real-time score, clock, exclusions, timeouts. Two-operator model: one scorekeeper + one stat tracker.
-- **Match History** — Final scores, key stats, optional MVP.
-- **Tournament** — Flexible format: N groups per category, round-robin group stage, auto-generated knockouts (semis or quarters). Supports 2-group (classic 8-team) through 4+ group tournaments.
-- **Player Cards** — Role, strengths, aggregated stats, badges.
-- **League Season** — TBD.
+| Sport | Status | App |
+|-------|--------|-----|
+| **Handball** | Phase 1 + Phase 3 + Phase 4 complete | `/` (repo root) |
+| **Basketball** | Phase 1 in progress | `basketball/` |
+
+---
+
+## Basketball (Phase 1 — in progress)
+
+See [`basketball/ARCHITECTURE.md`](basketball/ARCHITECTURE.md) and [`basketball/docs/BASKETBALL_RULES.md`](basketball/docs/BASKETBALL_RULES.md) for the full spec.
+
+Planned features:
+- **Scoreboard** — 2pt / 3pt / 1pt scoring, team foul counter per quarter (bonus indicator), stopped clock, quarter transitions, timeouts
+- **Scorekeeper** — first visitor to `/match/:id` claims the role, no code gate
+- **Viewer** — public live view, Supabase Realtime updates
+- **Tournament** — group phase standings + knockout bracket
+- **Player Cards** — FIFA-style card with 6 manual attributes (TIRO / PASE / DEFENSA / FÍSICO / STAMINA / VISIÓN)
+- **PWA + Offline** — installable, Dexie.js queue for game-venue signal drops
+
+---
+
+## Handball
 
 ## Current Status
 
@@ -217,23 +234,15 @@ See [`TESTING.md`](TESTING.md) for the full test strategy, pyramid, viewport rul
 
 ## CI / GitHub Actions
 
-Every PR to `main` triggers two jobs:
+Every push to `feat/**` or `fix/**` branches triggers CI. Jobs run independently per sport based on which paths changed.
 
 | Job | What it checks |
 |-----|---------------|
-| **Build + test** | `npm ci` → `npm run build` → `npm test` (unit + component) |
-| **Migration drift check** | Reads `supabase/migrations/*.sql` and verifies every numeric prefix is present in `supabase_migrations.schema_migrations`. Fails with a clear message if any migration file hasn't been applied. |
+| **Handball — build + test** | `npm ci` → `tsc + vite build` → `vitest run` → Playwright smoke |
+| **Basketball — build + test** | `npm install` → `tsc + vite build` → `vitest run` (skips gracefully if no tests yet) |
+| **Issue autolabeling** | On CI pass: adds `in-review`, removes `in-progress`. On CI fail: adds `needs-fix`. Issue number parsed from branch name (`feat/10-slug` → #10). |
 
-### Required GitHub Secrets
-
-Add these in **Settings → Secrets and variables → Actions** on `jciveira/handball-lab`:
-
-| Secret | Value |
-|--------|-------|
-| `SUPABASE_URL` | Your project URL (same as `VITE_SUPABASE_URL` in `.env`, no trailing slash) |
-| `SUPABASE_SERVICE_KEY` | Service role key — needs `SELECT` on `supabase_migrations.schema_migrations` |
-
-> The migration check is **read-only** — CI never applies migrations itself. Apply them locally with `supabase db push` before opening a PR that includes a new migration file.
+No secrets required — `GITHUB_TOKEN` covers both code and issues (same repo).
 
 ## Getting Started
 
@@ -251,28 +260,39 @@ npm run dev
 ## Project Structure
 
 ```
-src/
-  components/
-    scoreboard/   # Clock, score panels, controls
-    stats/        # Stat tracker UI (Phase 2)
-    tournament/   # Brackets, groups (Phase 3)
-    players/      # Player cards (Phase 4)
-  hooks/          # Zustand stores, custom hooks
-  lib/            # Supabase client, offline sync, rules
-  pages/          # Route pages
-  types/          # TypeScript types
-tests/
-  unit/           # Store + rules unit tests
-  component/      # React component tests
-  integration/    # Real-DB smoke tests (run locally, not in CI)
-  setup.ts        # Test setup (jest-dom matchers)
-e2e/              # Playwright E2E + smoke tests
+/                         # Handball app (React + Vite root)
+  src/
+    components/
+      scoreboard/         # Clock, score panels, controls
+      tournament/         # Brackets, groups
+      players/            # Player cards
+    hooks/                # Zustand stores, custom hooks
+    lib/                  # Supabase client, offline sync, rules
+    pages/                # Route pages
+    types/                # TypeScript types
+  tests/
+    unit/                 # Store + rules unit tests
+    component/            # React component tests
+    integration/          # Real-DB smoke tests (run locally, not in CI)
+  e2e/                    # Playwright E2E + smoke tests
+  docs/
+    GUIA_PADRES.md        # Spanish parent guide (printable)
+  supabase/migrations/    # DB schema history
+
+basketball/               # Basketball app (separate Vite project)
+  src/
+    components/
+    lib/
+    pages/
+    types/
+  docs/
+    BASKETBALL_RULES.md   # Rules spec driving scoreboard logic
+
 .github/
   workflows/
-    ci.yml        # Build + test + migration drift check on every PR
-docs/
-  GUIA_PADRES.md  # Spanish parent guide (printable)
-  references/     # UI inspiration screenshots
+    ci.yml                # Per-sport CI + issue autolabeling on feat/** / fix/**
+.claude/
+  commands/               # lab-dev-session, lab-groom, lab-test-session
 ```
 
 ## Privacy
@@ -285,7 +305,7 @@ This app is used by minors. Strict data minimization applies:
 
 ## Contributing
 
-Issues and feedback welcome! Use [Excalidraw](https://excalidraw.com) for UI mocks and attach them to GitHub Issues.
+Issues tracked at [jciveira/sports-lab](https://github.com/jciveira/sports-lab/issues). Use [Excalidraw](https://excalidraw.com) for UI mocks and attach them to GitHub Issues.
 
 ## License
 
