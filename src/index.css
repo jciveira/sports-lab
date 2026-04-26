@@ -1,0 +1,63 @@
+@import "tailwindcss";
+
+@theme {
+  /* HandBallLab color palette — dark-first design */
+  --color-hbl-bg: #0a0a0a;
+  --color-hbl-surface: #1a1a2e;
+  --color-hbl-surface-light: #25253e;
+  --color-hbl-border: #2e2e4a;
+  --color-hbl-text: #e0e0e0;
+  --color-hbl-text-muted: #8888aa;
+  --color-hbl-accent: #00d4aa;
+  --color-hbl-score: #00ff88;
+  --color-hbl-clock: #ff3333;
+  --color-hbl-warning: #ffaa00;
+  --color-hbl-team-home: #4488ff;
+  --color-hbl-team-away: #ff6644;
+}
+
+/* 7-segment LED font for scores/clock */
+@font-face {
+  font-family: "DSEG7";
+  src: url("/fonts/DSEG7Classic-Bold.woff2") format("woff2");
+  font-weight: bold;
+  font-display: swap;
+}
+
+body {
+  margin: 0;
+  background: var(--color-hbl-bg);
+  color: var(--color-hbl-text);
+  font-family: system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  overscroll-behavior: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+#root {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Light theme — overrides CSS variables when html.light is set */
+html.light {
+  --color-hbl-bg: #f0f0f5;
+  --color-hbl-surface: #ffffff;
+  --color-hbl-surface-light: #e8e8f0;
+  --color-hbl-border: #ccccdd;
+  --color-hbl-text: #1a1a2e;
+  --color-hbl-text-muted: #55557a;
+  --color-hbl-accent: #008870;
+  --color-hbl-score: #007744;
+  --color-hbl-clock: #cc0000;
+  --color-hbl-warning: #bb7700;
+  --color-hbl-team-home: #2255cc;
+  --color-hbl-team-away: #cc3311;
+}
+
+/* Utility for scoreboard digits */
+.font-score {
+  font-family: "DSEG7", monospace;
+}

@@ -1,0 +1,92 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  build-and-test:
+    name: Build + test
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Unit + component tests
+        run: npm test
+
+  migration-check:
+    name: Migration drift check
+    runs-on: ubuntu-latest
+    # Run independently of build so migration failures are clearly surfaced
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check pending migrations
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+        run: |
+          python3 - <<'EOF'
+          import os, re, sys, json
+          from urllib.request import Request, urlopen
+          from urllib.error import HTTPError
+
+          supabase_url = os.environ.get('SUPABASE_URL', '').rstrip('/')
+          service_key  = os.environ.get('SUPABASE_SERVICE_KEY', '')
+
+          if not supabase_url or not service_key:
+              print('::error::SUPABASE_URL and SUPABASE_SERVICE_KEY secrets are required for migration check.')
+              sys.exit(1)
+
+          # Collect local migration files → {numeric_prefix: filename}
+          local = {}
+          for fname in sorted(os.listdir('supabase/migrations')):
+              if fname.endswith('.sql'):
+                  m = re.match(r'^(\d+)', fname)
+                  if m:
+                      local[m.group(1)] = fname
+
+          # Query applied migrations from supabase_migrations.schema_migrations
+          req = Request(
+              f'{supabase_url}/rest/v1/schema_migrations?select=version',
+              headers={
+                  'apikey': service_key,
+                  'Authorization': f'Bearer {service_key}',
+                  'Accept-Profile': 'supabase_migrations',
+              },
+          )
+          try:
+              with urlopen(req) as resp:
+                  applied_rows = json.loads(resp.read())
+          except HTTPError as e:
+              print(f'::error::Migration check request failed (HTTP {e.code}): {e.read().decode()}')
+              sys.exit(1)
+
+          # Extract numeric prefix from each applied version for flexible matching
+          applied_prefixes = set()
+          for row in applied_rows:
+              m = re.match(r'^(\d+)', str(row.get('version', '')))
+              if m:
+                  applied_prefixes.add(m.group(1))
+
+          pending = [fname for prefix, fname in sorted(local.items()) if prefix not in applied_prefixes]
+          if pending:
+              names = ', '.join(pending)
+              print(f'::error::Pending migrations: {names} — apply to Supabase before merging.')
+              sys.exit(1)
+
+          print(f'All {len(local)} migrations applied ✓')
+          EOF
