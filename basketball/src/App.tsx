@@ -4,6 +4,8 @@ import { LoginPage } from './pages/LoginPage'
 import { ViewerPage } from './pages/ViewerPage'
 import ScorekeeperPage from './pages/ScorekeeperPage'
 import { PlayerCardPage } from './pages/PlayerCardPage'
+import { TournamentPage } from './pages/TournamentPage'
+import { TournamentBracketPage } from './pages/TournamentBracketPage'
 
 export default function App() {
   return (
@@ -15,6 +17,8 @@ export default function App() {
         <Route path="/match/:id/view" element={<ViewerPage />} />
         <Route path="/match/:id" element={<ScorekeeperPage />} />
         <Route path="/player/:id/card" element={<PlayerCardPage />} />
+        <Route path="/tournament/:id" element={<TournamentPage />} />
+        <Route path="/tournament/:id/bracket" element={<TournamentBracketPage />} />
       </Routes>
     </BrowserRouter>
   )
