@@ -9,11 +9,11 @@ Built as a family learning project — designed to be used during real games and
 | Sport | Status | App |
 |-------|--------|-----|
 | **Handball** | Phase 1 + Phase 3 + Phase 4 complete | `/` (repo root) |
-| **Basketball** | Phase 1 complete | `basketball/` |
+| **Basketball** | Phase 1 + Phase 3 + Phase 4 complete | `basketball/` |
 
 ---
 
-## Basketball (Phase 1 — complete)
+## Basketball (Phase 1 + Phase 3 + Phase 4 — complete)
 
 See [`basketball/ARCHITECTURE.md`](basketball/ARCHITECTURE.md) and [`basketball/docs/BASKETBALL_RULES.md`](basketball/docs/BASKETBALL_RULES.md) for the full spec.
 
@@ -24,14 +24,27 @@ See [`basketball/ARCHITECTURE.md`](basketball/ARCHITECTURE.md) and [`basketball/
 - [x] Rules spec — BASKETBALL_RULES.md reviewed and locked: 5 fouls/quarter bonus, 8 min quarters, 2 timeouts/half (#11)
 - [x] Admin page — create teams, create matches with quarter duration selector (8/10 min), copy viewer URL (#9)
 - [x] Viewer UI — `/match/:id/view` public live scoreboard, Supabase Realtime updates, reconnect on drop (#7)
-- [x] Scorekeeper UI — claim role (first-come first-served), +2/+3/+1 scoring, undo last, foul counter per quarter, countdown clock, end quarter, timeouts, finish match, offline queue (#8)
+- [x] Scorekeeper UI — claim role (first-come first-served), +2/+3/+1 scoring, undo last, foul counter per quarter, countdown clock, end quarter, timeouts, finish match (#8)
+- [x] Offline event queue — Dexie.js IndexedDB buffer, flush on reconnect, amber banner on scorekeeper page (#6)
 
-**Basketball tests:** 54 unit tests (5 files)
+**Phase 3 shipped:**
+- [x] Tournament store — `createTournament`, `addTeamToTournament`, `generateGroupSchedule` (round-robin N*(N-1)/2), `generateKnockoutDraw`, `advanceWinner`, `computeStandings` (#4)
+- [x] Standings table — W/L, points (Win=2/Loss=0), GD, sorted by points desc, tiebreak by GD (#4)
+- [x] `TournamentPage` at `/tournament/:id` — group standings + schedule + Realtime subscription (#4)
+- [x] Knockout bracket — `TournamentBracketPage` at `/tournament/:id/bracket`, horizontally scrollable (#3)
+- [x] Admin `TournamentSection` — create tournament, add teams, trigger group + knockout generation (#4)
 
-**Planned — Phase 2+:**
+**Phase 4 shipped:**
+- [x] Player roster per team — add/edit/remove, duplicate jersey guard, max 12 players (#2)
+- [x] `usePlayersStore` — CRUD with Supabase, sorted by jersey number (#2)
+- [x] `PlayerCardPage` at `/player/:id/card` — FIFA-style card, 6 attribute bars, `overall = avg(6 attrs)` (#1)
+- [x] `PlayerAttributes` type — tiro, pase, defensa, fisico, stamina, vision (0–99) (#1)
+- [x] Admin `RosterSection` — team selector, add-player form, inline attribute editor (#2)
+
+**Basketball tests:** 90 unit tests (8 files)
+
+**Planned — Phase 2:**
 - **Stat Tracking** — tag goals, assists, blocks, rebounds per player
-- **Tournament Mode** — group standings + knockout bracket
-- **Player Cards** — FIFA-style card with per-player stats
 
 ---
 

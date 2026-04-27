@@ -55,17 +55,26 @@ Viewers (shared code per tournament/match)
   - Access match history, player cards, tournament brackets
 ```
 
-## Data Model (Phase 1)
+## Data Model
 
 ```
 teams
   id, name, nickname, badge_url, city_district, created_at
 
 players
-  id, team_id, display_name, number, position, avatar_url
+  id, team_id, display_name, number, position, avatar_url, attributes (JSONB), created_at
+  -- attributes: { tiro, pase, defensa, fisico, stamina, vision } (0–99 each)
 
 tournaments
-  id, name, format, num_teams, status, viewer_code
+  id, name, format, num_teams, status (setup/group_phase/knockout/finished), viewer_code
+
+tournament_teams
+  id, tournament_id, team_id, group_name, created_at
+
+tournament_matches
+  id, tournament_id, phase (group/sf/qf/final), round_index, match_slot
+  home_team_id (nullable for unresolved bracket slots), away_team_id (nullable)
+  match_id (nullable — links to matches when the match is started)
 
 matches
   id, tournament_id, phase, home_team_id, away_team_id
@@ -87,7 +96,8 @@ match_events
 
 ### Phase 1 — Live Scoreboard ✅ COMPLETE
 - Admin: create match, assign teams (#9)
-- Scorekeeper UI: score +/-, fouls, clock, timeouts, quarter transitions, offline queue (#8)
+- Scorekeeper UI: score +/-, fouls, clock, timeouts, quarter transitions (#8)
+- Offline event queue: Dexie.js IndexedDB buffer, flush on reconnect (#6)
 - Viewer UI: live scoreboard, Supabase Realtime, reconnect on drop (#7)
 - Supabase schema + TypeScript types (#10)
 - PWA: manifest, service worker, icons (#5)
@@ -97,13 +107,19 @@ match_events
 - Stat Tracker UI: tag goals, assists, blocks, rebounds
 - Match History with final scores
 
-### Phase 3 — Tournament Mode
-- Group stages + knockout brackets
-- Team profiles and rosters
+### Phase 3 — Tournament Mode ✅ COMPLETE
+- Tournament store: createTournament, addTeamToTournament, generateGroupSchedule (round-robin), generateKnockoutDraw, advanceWinner, computeStandings (#4)
+- Standings: W/L, pts (Win=2/Loss=0), GD, tiebreak by GD (#4)
+- TournamentPage at /tournament/:id — standings + schedule + Realtime (#4)
+- TournamentBracketPage at /tournament/:id/bracket — scrollable bracket (#3)
+- Admin TournamentSection — create, add teams, trigger group + knockout generation (#4)
 
-### Phase 4 — Player Cards
-- Stats aggregated from match_events
-- Shareable card view
+### Phase 4 — Player Cards ✅ COMPLETE
+- Roster management: add/edit/remove players per team, duplicate jersey guard, max 12 players (#2)
+- usePlayersStore: CRUD with Supabase, sorted by jersey number (#2)
+- PlayerCardPage at /player/:id/card — FIFA-style card, 6 attribute bars, overall = avg(6 attrs) (#1)
+- PlayerAttributes type: tiro, pase, defensa, fisico, stamina, vision (0–99) (#1)
+- Admin RosterSection: add form, inline attribute editor, confirmation on remove (#2)
 
 ## Project Structure
 
