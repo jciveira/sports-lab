@@ -1,5 +1,10 @@
 # Basketball Rules — BasketballLab Reference
 
+> **Reviewed & locked for Phase 1 development (2026-04-27).**
+> Team foul bonus threshold resolved: **5 fouls per quarter** (not 7 per half).
+> Per-quarter tracking is simpler and matches the epic design for youth/school basketball.
+> No further rule changes without a new review pass.
+
 > These rules drive the app's scoreboard logic. Simplified for youth basketball (U12/U14).
 > Edit this file as league-specific rules are confirmed.
 
@@ -44,7 +49,7 @@
 | Rule | Value |
 |---|---|
 | Personal fouls before fouling out | 5 (youth) |
-| Team fouls before bonus free throws | 7 per half |
+| Team fouls before bonus free throws | 5 per quarter (bonus free throws triggered) |
 | Flagrant / technical | Tracked as events (informational) |
 
 > For MVP: track team foul count per quarter. Individual foul tracking is phase 2.
@@ -97,7 +102,8 @@ QUARTER_BREAK_MINUTES=2
 FULL_TIMEOUTS_PER_HALF=2
 TIMEOUT_DURATION_SECONDS=60
 PERSONAL_FOULS_BEFORE_FOULOUT=5
-TEAM_FOULS_BEFORE_BONUS=7
+TEAM_FOULS_BEFORE_BONUS=5
+TEAM_FOULS_BONUS_SCOPE=quarter
 OVERTIME_DURATION_MINUTES=3
 OVERTIME_TIMEOUTS=1
 PLAYERS_ON_COURT=5
