@@ -1,16 +1,8 @@
-import { BrowserRouter, Routes, Route, Navigate, useParams } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AdminPage } from './pages/AdminPage'
 import { LoginPage } from './pages/LoginPage'
 import { ViewerPage } from './pages/ViewerPage'
-
-function ScorekeeperPage() {
-  const { id } = useParams<{ id: string }>()
-  return (
-    <div className="min-h-screen bg-gray-950 text-white flex items-center justify-center">
-      <p className="text-gray-400">Scorekeeper coming soon — match {id}</p>
-    </div>
-  )
-}
+import ScorekeeperPage from './pages/ScorekeeperPage'
 
 export default function App() {
   return (
