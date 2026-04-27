@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { useMatchStore, FOUL_BONUS_THRESHOLD } from '../stores/useMatchStore'
+import { flushPendingEvents } from '../lib/offlineSync'
 
 function formatTime(seconds: number): string {
   const s = Math.max(0, seconds)
@@ -154,10 +155,28 @@ export default function ScorekeeperPage() {
 
   const [homeName, setHomeName] = useState('Home')
   const [awayName, setAwayName] = useState('Away')
+  const [isOffline, setIsOffline] = useState(!navigator.onLine)
 
   useEffect(() => {
     if (matchId) loadMatch(matchId)
   }, [matchId, loadMatch])
+
+  // Connectivity indicator — sync on reconnect
+  useEffect(() => {
+    function handleOnline() {
+      setIsOffline(false)
+      flushPendingEvents().catch(console.warn)
+    }
+    function handleOffline() {
+      setIsOffline(true)
+    }
+    window.addEventListener('online', handleOnline)
+    window.addEventListener('offline', handleOffline)
+    return () => {
+      window.removeEventListener('online', handleOnline)
+      window.removeEventListener('offline', handleOffline)
+    }
+  }, [])
 
   // Load team names from Supabase teams table if match is loaded
   useEffect(() => {
@@ -258,6 +277,13 @@ export default function ScorekeeperPage() {
 
   return (
     <div className="min-h-screen bg-gray-950 text-white flex flex-col">
+      {/* Offline banner */}
+      {isOffline && (
+        <div className="bg-amber-600 text-white text-sm font-semibold text-center px-4 py-2">
+          ⚠️ Sin conexión — los puntos se guardarán al reconectar
+        </div>
+      )}
+
       {/* Clock bar */}
       <div className="flex items-center justify-between px-4 py-3 bg-gray-900 border-b border-gray-800">
         <div className="text-sm font-semibold text-gray-400">{quarterLabel}</div>
