@@ -39,6 +39,7 @@ export interface Match {
   away_score: number
   status: MatchStatus
   quarter: number
+  time_remaining_seconds: number | null
   scorekeeper_claimed_by: string | null
   started_at: string | null
   finished_at: string | null

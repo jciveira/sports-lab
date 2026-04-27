@@ -17,7 +17,7 @@ export interface Database {
       }
       matches: {
         Row: Match
-        Insert: Omit<Match, 'id' | 'created_at'> & { id?: string; created_at?: string }
+        Insert: Omit<Match, 'id' | 'created_at' | 'time_remaining_seconds'> & { id?: string; created_at?: string; time_remaining_seconds?: number | null }
         Update: Partial<Omit<Match, 'id'>>
       }
       match_events: {
