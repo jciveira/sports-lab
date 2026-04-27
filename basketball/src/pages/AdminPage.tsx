@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Link } from 'react-router-dom'
 import { supabase, isSupabaseConfigured } from '../lib/supabase'
 import { useTeamsStore } from '../stores/useTeamsStore'
 import { useMatchesStore, type MatchWithDuration } from '../stores/useMatchesStore'
-import type { Team, Match } from '../types'
+import { useTournamentStore } from '../stores/useTournamentStore'
+import type { Team, Match, Tournament } from '../types'
 
 // ─── helpers ────────────────────────────────────────────────────────────────
 
@@ -257,6 +258,294 @@ function MatchesSection({ matches, teams, loading }: { matches: MatchWithDuratio
   )
 }
 
+// ─── Tournament status badge ──────────────────────────────────────────────────
+
+function tournamentStatusBadge(status: Tournament['status']) {
+  const map: Record<Tournament['status'], { label: string; colour: string }> = {
+    setup: { label: 'Setup', colour: 'text-blue-400' },
+    group_phase: { label: 'Group Phase', colour: 'text-green-400' },
+    knockout: { label: 'Knockout', colour: 'text-orange-400' },
+    finished: { label: 'Finished', colour: 'text-gray-500' },
+  }
+  const { label, colour } = map[status] ?? { label: status, colour: 'text-gray-400' }
+  return <span className={`text-xs font-bold uppercase ${colour}`}>{label}</span>
+}
+
+// ─── Tournament section ───────────────────────────────────────────────────────
+
+function TournamentSection({ teams }: { teams: Team[] }) {
+  const tournaments = useTournamentStore((s) => s.tournaments)
+  const tournamentTeams = useTournamentStore((s) => s.tournamentTeams)
+  const tournamentMatches = useTournamentStore((s) => s.tournamentMatches)
+  const currentTournament = useTournamentStore((s) => s.currentTournament)
+  const loading = useTournamentStore((s) => s.loading)
+  const storeError = useTournamentStore((s) => s.error)
+  const fetchTournaments = useTournamentStore((s) => s.fetchTournaments)
+  const createTournament = useTournamentStore((s) => s.createTournament)
+  const loadTournament = useTournamentStore((s) => s.loadTournament)
+  const addTeamToTournament = useTournamentStore((s) => s.addTeamToTournament)
+  const generateGroupSchedule = useTournamentStore((s) => s.generateGroupSchedule)
+  const generateKnockoutDraw = useTournamentStore((s) => s.generateKnockoutDraw)
+
+  const [name, setName] = useState('')
+  const [numTeams, setNumTeams] = useState(4)
+  const [submitting, setSubmitting] = useState(false)
+  const [localError, setLocalError] = useState<string | null>(null)
+  const [expandedId, setExpandedId] = useState<string | null>(null)
+  const [addTeamId, setAddTeamId] = useState('')
+  const [actionLoading, setActionLoading] = useState(false)
+
+  useEffect(() => {
+    void fetchTournaments()
+  }, [fetchTournaments])
+
+  async function handleCreate(e: React.FormEvent) {
+    e.preventDefault()
+    if (!name.trim()) return
+    setSubmitting(true)
+    setLocalError(null)
+    const result = await createTournament(name.trim(), numTeams)
+    setSubmitting(false)
+    if (result) {
+      setName('')
+      setNumTeams(4)
+    } else {
+      setLocalError(storeError ?? 'Could not create tournament')
+    }
+  }
+
+  async function handleExpand(tournament: Tournament) {
+    if (expandedId === tournament.id) {
+      setExpandedId(null)
+      return
+    }
+    setExpandedId(tournament.id)
+    await loadTournament(tournament.id)
+    setAddTeamId('')
+  }
+
+  async function handleAddTeam(tournamentId: string) {
+    if (!addTeamId) return
+    setActionLoading(true)
+    await addTeamToTournament(tournamentId, addTeamId)
+    setAddTeamId('')
+    await loadTournament(tournamentId)
+    setActionLoading(false)
+  }
+
+  async function handleGenerateSchedule(tournamentId: string) {
+    setActionLoading(true)
+    await generateGroupSchedule(tournamentId)
+    await loadTournament(tournamentId)
+    setActionLoading(false)
+  }
+
+  async function handleKnockoutDraw(tournamentId: string) {
+    setActionLoading(true)
+    await generateKnockoutDraw(tournamentId)
+    await loadTournament(tournamentId)
+    setActionLoading(false)
+  }
+
+  const enrolledCount = tournamentTeams.filter(
+    (tt) => tt.tournament_id === expandedId,
+  ).length
+
+  const allGroupFinished =
+    currentTournament?.status === 'group_phase' &&
+    tournamentMatches
+      .filter((tm) => tm.tournament_id === expandedId && tm.phase === 'group')
+      .every((tm) => !tm.match_id) === false
+      ? false // If no match_id, not started yet so not all finished
+      : false // Simplified: enable button when status is group_phase and admin clicks
+
+  void allGroupFinished // suppress unused warning — we use a simpler heuristic below
+
+  return (
+    <section className="flex flex-col gap-4">
+      <h2 className="text-lg font-bold text-orange-400 uppercase tracking-widest">Tournaments</h2>
+
+      {/* Create form */}
+      <form onSubmit={handleCreate} className="flex flex-col gap-3 p-4 rounded-2xl bg-gray-900 border border-gray-800">
+        <p className="text-xs uppercase tracking-widest text-gray-400">New tournament</p>
+        <input
+          type="text"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          required
+          placeholder="Tournament name *"
+          className="w-full px-4 py-3 rounded-xl bg-gray-800 border border-gray-700 text-white placeholder-gray-600 focus:outline-none focus:border-orange-400 min-h-12"
+        />
+        <div className="flex flex-col gap-1">
+          <label className="text-xs text-gray-500">Number of teams</label>
+          <select
+            value={numTeams}
+            onChange={(e) => setNumTeams(Number(e.target.value))}
+            className="w-full px-4 py-3 rounded-xl bg-gray-800 border border-gray-700 text-white focus:outline-none focus:border-orange-400 min-h-12"
+          >
+            {[4, 6, 8, 10, 12, 16].map((n) => (
+              <option key={n} value={n}>{n} teams</option>
+            ))}
+          </select>
+        </div>
+        {localError && <p className="text-sm text-red-400">{localError}</p>}
+        <button
+          type="submit"
+          disabled={submitting || !name.trim()}
+          className="flex items-center justify-center px-6 py-3 rounded-xl bg-orange-400 text-gray-950 font-bold min-h-12 disabled:opacity-40 active:scale-95 transition-transform"
+        >
+          {submitting ? 'Creating…' : 'Create tournament'}
+        </button>
+      </form>
+
+      {/* Tournament list */}
+      {loading && tournaments.length === 0 ? (
+        <p className="text-sm text-gray-500 text-center py-4">Loading…</p>
+      ) : tournaments.length === 0 ? (
+        <p className="text-sm text-gray-500 text-center py-4">No tournaments yet.</p>
+      ) : (
+        <ul className="flex flex-col gap-2">
+          {tournaments.map((t) => {
+            const isExpanded = expandedId === t.id
+            const isCurrent = currentTournament?.id === t.id
+            const enrolled = isCurrent
+              ? tournamentTeams.filter((tt) => tt.tournament_id === t.id)
+              : []
+
+            // Teams already enrolled
+            const enrolledTeamIds = new Set(enrolled.map((tt) => tt.team_id))
+            const availableTeams = teams.filter((team) => !enrolledTeamIds.has(team.id))
+
+            const canGenerateSchedule =
+              isCurrent &&
+              currentTournament?.status === 'setup' &&
+              enrolledCount >= currentTournament.num_teams
+
+            const canKnockout =
+              isCurrent &&
+              currentTournament?.status === 'group_phase'
+
+            return (
+              <li key={t.id} className="flex flex-col rounded-xl bg-gray-900 border border-gray-800 overflow-hidden">
+                {/* Header row */}
+                <div className="flex items-center justify-between gap-2 p-3">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold truncate">{t.name}</p>
+                    <div className="flex items-center gap-2 mt-0.5">
+                      {tournamentStatusBadge(t.status)}
+                      <span className="text-xs text-gray-500">{t.num_teams} teams</span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Link
+                      to={`/tournament/${t.id}`}
+                      className="px-3 py-1.5 rounded-lg bg-gray-800 border border-gray-700 text-xs text-gray-300 hover:border-orange-400 hover:text-orange-400 transition-colors"
+                    >
+                      View
+                    </Link>
+                    <button
+                      onClick={() => void handleExpand(t)}
+                      className="px-3 py-1.5 rounded-lg bg-gray-800 border border-gray-700 text-xs text-gray-300 hover:border-orange-400 hover:text-orange-400 transition-colors"
+                    >
+                      {isExpanded ? 'Collapse' : 'Manage'}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Expanded management panel */}
+                {isExpanded && isCurrent && (
+                  <div className="flex flex-col gap-3 px-3 pb-3 border-t border-gray-800 pt-3">
+                    {/* Error */}
+                    {storeError && (
+                      <p className="text-sm text-red-400">{storeError}</p>
+                    )}
+
+                    {/* Enrolled teams */}
+                    <div>
+                      <p className="text-xs text-gray-500 mb-1">
+                        Enrolled ({enrolledCount}/{currentTournament?.num_teams ?? '?'})
+                      </p>
+                      {enrolled.length === 0 ? (
+                        <p className="text-xs text-gray-600">No teams enrolled yet.</p>
+                      ) : (
+                        <ul className="flex flex-col gap-1">
+                          {enrolled.map((tt) => {
+                            const team = teams.find((tm) => tm.id === tt.team_id)
+                            return (
+                              <li key={tt.id} className="text-sm text-gray-300 px-2 py-1 bg-gray-800 rounded-lg">
+                                {team?.name ?? tt.team_id}
+                              </li>
+                            )
+                          })}
+                        </ul>
+                      )}
+                    </div>
+
+                    {/* Add team */}
+                    {currentTournament?.status === 'setup' && (
+                      <div className="flex gap-2">
+                        <select
+                          value={addTeamId}
+                          onChange={(e) => setAddTeamId(e.target.value)}
+                          className="flex-1 px-3 py-2 rounded-xl bg-gray-800 border border-gray-700 text-white text-sm focus:outline-none focus:border-orange-400 min-h-10"
+                        >
+                          <option value="">Add a team…</option>
+                          {availableTeams.map((team) => (
+                            <option key={team.id} value={team.id}>{team.name}</option>
+                          ))}
+                        </select>
+                        <button
+                          onClick={() => void handleAddTeam(t.id)}
+                          disabled={!addTeamId || actionLoading}
+                          className="px-4 py-2 rounded-xl bg-orange-400 text-gray-950 text-sm font-bold min-h-10 disabled:opacity-40 active:scale-95 transition-transform"
+                        >
+                          Add
+                        </button>
+                      </div>
+                    )}
+
+                    {/* Generate schedule */}
+                    {canGenerateSchedule && (
+                      <button
+                        onClick={() => void handleGenerateSchedule(t.id)}
+                        disabled={actionLoading}
+                        className="flex items-center justify-center px-4 py-2 rounded-xl bg-green-600 text-white text-sm font-bold min-h-10 disabled:opacity-40 active:scale-95 transition-transform"
+                      >
+                        {actionLoading ? 'Generating…' : 'Generate Group Schedule'}
+                      </button>
+                    )}
+
+                    {/* Generate knockout draw */}
+                    {canKnockout && (
+                      <button
+                        onClick={() => void handleKnockoutDraw(t.id)}
+                        disabled={actionLoading}
+                        className="flex items-center justify-center px-4 py-2 rounded-xl bg-orange-400 text-gray-950 text-sm font-bold min-h-10 disabled:opacity-40 active:scale-95 transition-transform"
+                      >
+                        {actionLoading ? 'Generating…' : 'Generate Knockout Draw'}
+                      </button>
+                    )}
+
+                    {/* Bracket link */}
+                    {(currentTournament?.status === 'knockout' || currentTournament?.status === 'finished') && (
+                      <Link
+                        to={`/tournament/${t.id}/bracket`}
+                        className="flex items-center justify-center px-4 py-2 rounded-xl bg-gray-800 border border-orange-400 text-orange-400 text-sm font-bold min-h-10 active:scale-95 transition-transform"
+                      >
+                        View Bracket →
+                      </Link>
+                    )}
+                  </div>
+                )}
+              </li>
+            )
+          })}
+        </ul>
+      )}
+    </section>
+  )
+}
+
 // ─── Admin page ──────────────────────────────────────────────────────────────
 
 export function AdminPage() {
@@ -330,6 +619,7 @@ export function AdminPage() {
 
         <TeamsSection teams={teams} loading={teamsLoading} />
         <MatchesSection matches={matches} teams={teams} loading={matchesLoading} />
+        <TournamentSection teams={teams} />
       </div>
     </div>
   )

@@ -1,5 +1,5 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
-import type { Team, Player, Match, MatchEvent } from '../types'
+import type { Team, Player, Match, MatchEvent, Tournament, TournamentTeam, TournamentMatch } from '../types'
 
 // Database shape for Supabase typed client
 export interface Database {
@@ -24,6 +24,21 @@ export interface Database {
         Row: MatchEvent
         Insert: Omit<MatchEvent, 'id' | 'created_at'> & { id?: string; created_at?: string }
         Update: Partial<Omit<MatchEvent, 'id'>>
+      }
+      tournaments: {
+        Row: Tournament
+        Insert: Omit<Tournament, 'id' | 'created_at'> & { id?: string; created_at?: string }
+        Update: Partial<Omit<Tournament, 'id'>>
+      }
+      tournament_teams: {
+        Row: TournamentTeam
+        Insert: Omit<TournamentTeam, 'id' | 'created_at'> & { id?: string; created_at?: string }
+        Update: Partial<Omit<TournamentTeam, 'id'>>
+      }
+      tournament_matches: {
+        Row: TournamentMatch
+        Insert: Omit<TournamentMatch, 'id' | 'created_at'> & { id?: string; created_at?: string }
+        Update: Partial<Omit<TournamentMatch, 'id'>>
       }
     }
   }
