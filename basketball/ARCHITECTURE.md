@@ -55,7 +55,7 @@ Viewers (shared code per tournament/match)
   - Access match history, player cards, tournament brackets
 ```
 
-## Data Model (planned)
+## Data Model (Phase 1)
 
 ```
 teams
@@ -69,26 +69,29 @@ tournaments
 
 matches
   id, tournament_id, phase, home_team_id, away_team_id
-  home_score, away_score, home_fouls, away_fouls
-  status (scheduled/running/paused/quarter-break/halftime/finished)
-  quarter, scorekeeper_claimed_by
+  home_score, away_score
+  status (scheduled/running/paused/quarter_break/finished)
+  quarter, time_remaining_seconds, scorekeeper_claimed_by
   started_at, finished_at
+  -- NOTE: team fouls are DERIVED from match_events counts — no counter columns
 
 match_events
-  id, match_id, type (goal/foul/timeout/quarter/halftime)
+  id, match_id, type (goal_2/goal_3/freethrow/foul/timeout/quarter_end)
   team_id, player_id (nullable)
-  quarter, time_remaining
+  quarter, time_remaining (seconds)
   synced (boolean)
   created_at
 ```
 
 ## MVP Phases
 
-### Phase 1 — Live Scoreboard
-- Admin: create match, assign teams
-- Scorekeeper UI: score +/-, fouls, clock, timeouts, quarter transitions
-- Viewer UI: live scoreboard
-- Supabase Realtime + offline queue
+### Phase 1 — Live Scoreboard ✅ COMPLETE
+- Admin: create match, assign teams (#9)
+- Scorekeeper UI: score +/-, fouls, clock, timeouts, quarter transitions, offline queue (#8)
+- Viewer UI: live scoreboard, Supabase Realtime, reconnect on drop (#7)
+- Supabase schema + TypeScript types (#10)
+- PWA: manifest, service worker, icons (#5)
+- Rules spec locked: 5 fouls/quarter, 8 min quarters, 2 timeouts/half (#11)
 
 ### Phase 2 — Stat Tracking + Match History
 - Stat Tracker UI: tag goals, assists, blocks, rebounds

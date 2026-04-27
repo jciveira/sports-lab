@@ -9,21 +9,29 @@ Built as a family learning project — designed to be used during real games and
 | Sport | Status | App |
 |-------|--------|-----|
 | **Handball** | Phase 1 + Phase 3 + Phase 4 complete | `/` (repo root) |
-| **Basketball** | Phase 1 in progress | `basketball/` |
+| **Basketball** | Phase 1 complete | `basketball/` |
 
 ---
 
-## Basketball (Phase 1 — in progress)
+## Basketball (Phase 1 — complete)
 
 See [`basketball/ARCHITECTURE.md`](basketball/ARCHITECTURE.md) and [`basketball/docs/BASKETBALL_RULES.md`](basketball/docs/BASKETBALL_RULES.md) for the full spec.
 
-Planned features:
-- **Scoreboard** — 2pt / 3pt / 1pt scoring, team foul counter per quarter (bonus indicator), stopped clock, quarter transitions, timeouts
-- **Scorekeeper** — first visitor to `/match/:id` claims the role, no code gate
-- **Viewer** — public live view, Supabase Realtime updates
-- **Tournament** — group phase standings + knockout bracket
-- **Player Cards** — FIFA-style card with 6 manual attributes (TIRO / PASE / DEFENSA / FÍSICO / STAMINA / VISIÓN)
-- **PWA + Offline** — installable, Dexie.js queue for game-venue signal drops
+**Phase 1 shipped:**
+- [x] Supabase schema — `teams`, `players`, `matches`, `match_events` with RLS + Realtime (#10)
+- [x] TypeScript types — `Team`, `Player`, `Match`, `MatchEvent`, `MatchStatus`, `PlayerPosition`, `EventType` (#10)
+- [x] PWA — manifest, service worker, 192/512px icons, installable on iOS + Android (#5)
+- [x] Rules spec — BASKETBALL_RULES.md reviewed and locked: 5 fouls/quarter bonus, 8 min quarters, 2 timeouts/half (#11)
+- [x] Admin page — create teams, create matches with quarter duration selector (8/10 min), copy viewer URL (#9)
+- [x] Viewer UI — `/match/:id/view` public live scoreboard, Supabase Realtime updates, reconnect on drop (#7)
+- [x] Scorekeeper UI — claim role (first-come first-served), +2/+3/+1 scoring, undo last, foul counter per quarter, countdown clock, end quarter, timeouts, finish match, offline queue (#8)
+
+**Basketball tests:** 54 unit tests (5 files)
+
+**Planned — Phase 2+:**
+- **Stat Tracking** — tag goals, assists, blocks, rebounds per player
+- **Tournament Mode** — group standings + knockout bracket
+- **Player Cards** — FIFA-style card with per-player stats
 
 ---
 
