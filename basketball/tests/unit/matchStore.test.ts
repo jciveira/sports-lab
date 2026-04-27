@@ -43,6 +43,17 @@ vi.mock('../../src/lib/supabase', () => ({
 }))
 
 // ---------------------------------------------------------------------------
+// Mock offlineSync — IndexedDB (Dexie) is not available in jsdom
+// ---------------------------------------------------------------------------
+
+vi.mock('../../src/lib/offlineSync', () => ({
+  queueEvent: vi.fn(async () => {}),
+  flushPendingEvents: vi.fn(async () => {}),
+  onlineStatus: { isOnline: true },
+  initOnlineListener: vi.fn(),
+}))
+
+// ---------------------------------------------------------------------------
 // Import store after mock
 // ---------------------------------------------------------------------------
 
@@ -83,7 +94,6 @@ function resetStore() {
     awayFouls: 0,
     homeTimeouts: 2,
     awayTimeouts: 2,
-    offlineQueue: [],
     intervalId: null,
   })
 }

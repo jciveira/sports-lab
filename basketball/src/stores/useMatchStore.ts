@@ -1,18 +1,12 @@
 import { create } from 'zustand'
 import { supabase } from '../lib/supabase'
+import { queueEvent, flushPendingEvents } from '../lib/offlineSync'
 import type { Match, MatchEvent, EventType } from '../types'
 
 // Quarter duration in seconds (8 min default)
 const QUARTER_SECONDS = 8 * 60
 const TIMEOUTS_PER_HALF = 2
 const FOUL_BONUS_THRESHOLD = 5
-
-interface OfflineEvent {
-  type: EventType
-  teamId: string | null
-  quarter: number
-  timeRemaining: number
-}
 
 interface MatchStoreState {
   match: Match | null
@@ -24,7 +18,6 @@ interface MatchStoreState {
   awayFouls: number
   homeTimeouts: number
   awayTimeouts: number
-  offlineQueue: OfflineEvent[]
   intervalId: ReturnType<typeof setInterval> | null
 
   // Actions
@@ -47,34 +40,6 @@ function eventTypeForPoints(points: 1 | 2 | 3): EventType {
   return 'freethrow'
 }
 
-async function writeEvent(
-  matchId: string,
-  type: EventType,
-  teamId: string | null,
-  quarter: number,
-  timeRemaining: number,
-): Promise<MatchEvent | null> {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data, error } = await (supabase.from('match_events') as any)
-    .insert({
-      match_id: matchId,
-      type,
-      team_id: teamId,
-      player_id: null,
-      quarter,
-      time_remaining: timeRemaining,
-      synced: true,
-    })
-    .select()
-    .single()
-
-  if (error) {
-    console.warn('Supabase write failed, queuing offline', error)
-    return null
-  }
-  return data as MatchEvent
-}
-
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function matchUpdate(matchId: string, patch: Record<string, unknown>): Promise<any> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -91,7 +56,6 @@ export const useMatchStore = create<MatchStoreState>((set, get) => ({
   awayFouls: 0,
   homeTimeouts: TIMEOUTS_PER_HALF,
   awayTimeouts: TIMEOUTS_PER_HALF,
-  offlineQueue: [],
   intervalId: null,
 
   loadMatch: async (matchId) => {
@@ -155,17 +119,11 @@ export const useMatchStore = create<MatchStoreState>((set, get) => ({
     // Update Supabase match score
     await matchUpdate(match.id, { [scoreKey]: newScore })
 
-    // Write event
-    const event = await writeEvent(match.id, type, teamId, match.quarter, timeRemaining)
-    if (event) {
-      set((state) => ({ events: [...state.events, event] }))
-    } else {
-      set((state) => ({
-        offlineQueue: [
-          ...state.offlineQueue,
-          { type, teamId, quarter: match.quarter, timeRemaining },
-        ],
-      }))
+    // Queue event through offline layer
+    const eventId = crypto.randomUUID()
+    await queueEvent({ matchId: match.id, eventId, type, teamId, quarter: match.quarter, timeRemaining })
+    if (navigator.onLine) {
+      await flushPendingEvents()
     }
   },
 
@@ -179,16 +137,10 @@ export const useMatchStore = create<MatchStoreState>((set, get) => ({
 
     set({ [foulKey]: currentFouls + 1 })
 
-    const event = await writeEvent(match.id, 'foul', teamId, match.quarter, timeRemaining)
-    if (event) {
-      set((state) => ({ events: [...state.events, event] }))
-    } else {
-      set((state) => ({
-        offlineQueue: [
-          ...state.offlineQueue,
-          { type: 'foul', teamId, quarter: match.quarter, timeRemaining },
-        ],
-      }))
+    const eventId = crypto.randomUUID()
+    await queueEvent({ matchId: match.id, eventId, type: 'foul', teamId, quarter: match.quarter, timeRemaining })
+    if (navigator.onLine) {
+      await flushPendingEvents()
     }
   },
 
@@ -283,16 +235,10 @@ export const useMatchStore = create<MatchStoreState>((set, get) => ({
     const teamId = teamSide === 'home' ? match.home_team_id : match.away_team_id
     set({ [timeoutKey]: remaining - 1 })
 
-    const event = await writeEvent(match.id, 'timeout', teamId, match.quarter, timeRemaining)
-    if (event) {
-      set((state) => ({ events: [...state.events, event] }))
-    } else {
-      set((state) => ({
-        offlineQueue: [
-          ...state.offlineQueue,
-          { type: 'timeout', teamId, quarter: match.quarter, timeRemaining },
-        ],
-      }))
+    const eventId = crypto.randomUUID()
+    await queueEvent({ matchId: match.id, eventId, type: 'timeout', teamId, quarter: match.quarter, timeRemaining })
+    if (navigator.onLine) {
+      await flushPendingEvents()
     }
   },
 
@@ -303,10 +249,11 @@ export const useMatchStore = create<MatchStoreState>((set, get) => ({
     // Stop the clock
     if (intervalId) clearInterval(intervalId)
 
-    // Write quarter_end event
-    const event = await writeEvent(match.id, 'quarter_end', null, match.quarter, timeRemaining)
-    if (event) {
-      set((state) => ({ events: [...state.events, event] }))
+    // Queue quarter_end event
+    const eventId = crypto.randomUUID()
+    await queueEvent({ matchId: match.id, eventId, type: 'quarter_end', teamId: null, quarter: match.quarter, timeRemaining })
+    if (navigator.onLine) {
+      await flushPendingEvents()
     }
 
     const nextQuarter = match.quarter + 1
