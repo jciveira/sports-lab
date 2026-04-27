@@ -12,8 +12,8 @@ export interface Database {
       }
       players: {
         Row: Player
-        Insert: Omit<Player, 'id' | 'created_at'> & { id?: string; created_at?: string }
-        Update: Partial<Omit<Player, 'id'>>
+        Insert: Omit<Player, 'id' | 'created_at'> & { id?: string; created_at?: string; attributes?: Player['attributes'] }
+        Update: Partial<Omit<Player, 'id'>> & { attributes?: Player['attributes'] }
       }
       matches: {
         Row: Match

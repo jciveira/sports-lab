@@ -19,6 +19,15 @@ export interface Team {
   created_at: string
 }
 
+export interface PlayerAttributes {
+  tiro: number
+  pase: number
+  defensa: number
+  fisico: number
+  stamina: number
+  vision: number
+}
+
 export interface Player {
   id: string
   team_id: string
@@ -26,6 +35,7 @@ export interface Player {
   number: number
   position: PlayerPosition
   avatar_url: string | null
+  attributes: PlayerAttributes | null
   created_at: string
 }
 

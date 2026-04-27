@@ -3,7 +3,29 @@ import { useNavigate } from 'react-router-dom'
 import { supabase, isSupabaseConfigured } from '../lib/supabase'
 import { useTeamsStore } from '../stores/useTeamsStore'
 import { useMatchesStore, type MatchWithDuration } from '../stores/useMatchesStore'
-import type { Team, Match } from '../types'
+import { usePlayersStore } from '../stores/usePlayersStore'
+import type { Team, Match, PlayerPosition, PlayerAttributes } from '../types'
+
+// ─── Position helpers ────────────────────────────────────────────────────────
+
+const POSITION_LABELS: Record<PlayerPosition, string> = {
+  PG: 'Point Guard',
+  SG: 'Shooting Guard',
+  SF: 'Small Forward',
+  PF: 'Power Forward',
+  C: 'Center',
+}
+
+const ATTR_LABELS: Record<keyof PlayerAttributes, string> = {
+  tiro: 'TIRO',
+  pase: 'PASE',
+  defensa: 'DEFENSA',
+  fisico: 'FÍSICO',
+  stamina: 'STAMINA',
+  vision: 'VISIÓN',
+}
+
+const ATTR_KEYS = ['tiro', 'pase', 'defensa', 'fisico', 'stamina', 'vision'] as const
 
 // ─── helpers ────────────────────────────────────────────────────────────────
 
@@ -34,6 +56,236 @@ function CopyButton({ url }: { url: string }) {
     >
       {copied ? 'Copied!' : 'Copy viewer URL'}
     </button>
+  )
+}
+
+// ─── Roster section ──────────────────────────────────────────────────────────
+
+function RosterSection({ teams }: { teams: Team[] }) {
+  const players = usePlayersStore((s) => s.players)
+  const playersLoading = usePlayersStore((s) => s.loading)
+  const playersError = usePlayersStore((s) => s.error)
+  const fetchPlayersForTeam = usePlayersStore((s) => s.fetchPlayersForTeam)
+  const addPlayer = usePlayersStore((s) => s.addPlayer)
+  const removePlayer = usePlayersStore((s) => s.removePlayer)
+  const updatePlayerAttributes = usePlayersStore((s) => s.updatePlayerAttributes)
+
+  const [selectedTeamId, setSelectedTeamId] = useState('')
+  const [displayName, setDisplayName] = useState('')
+  const [number, setNumber] = useState('')
+  const [position, setPosition] = useState<PlayerPosition>('PG')
+  const [submitting, setSubmitting] = useState(false)
+  const [localError, setLocalError] = useState<string | null>(null)
+
+  // Attribute editing state
+  const [editingAttrsFor, setEditingAttrsFor] = useState<string | null>(null)
+  const [attrValues, setAttrValues] = useState<Record<string, string>>({})
+  const [attrSaving, setAttrSaving] = useState(false)
+
+  // Removal confirmation
+  const [confirmRemoveId, setConfirmRemoveId] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (selectedTeamId) {
+      void fetchPlayersForTeam(selectedTeamId)
+    } else {
+      usePlayersStore.setState({ players: [] })
+    }
+  }, [selectedTeamId, fetchPlayersForTeam])
+
+  async function handleAddPlayer(e: React.FormEvent) {
+    e.preventDefault()
+    if (!selectedTeamId || !displayName.trim() || !number) return
+    const jerseyNumber = parseInt(number, 10)
+    if (isNaN(jerseyNumber) || jerseyNumber < 1 || jerseyNumber > 99) {
+      setLocalError('Jersey number must be between 1 and 99')
+      return
+    }
+    setSubmitting(true)
+    setLocalError(null)
+    const result = await addPlayer(selectedTeamId, displayName.trim(), jerseyNumber, position)
+    setSubmitting(false)
+    if (result) {
+      setDisplayName('')
+      setNumber('')
+      setPosition('PG')
+    } else {
+      setLocalError(playersError ?? 'Could not add player')
+    }
+  }
+
+  function startEditAttrs(playerId: string) {
+    const player = players.find((p) => p.id === playerId)
+    if (!player) return
+    const defaults = player.attributes ?? { tiro: 0, pase: 0, defensa: 0, fisico: 0, stamina: 0, vision: 0 }
+    setAttrValues(Object.fromEntries(ATTR_KEYS.map((k) => [k, String(defaults[k])])))
+    setEditingAttrsFor(playerId)
+  }
+
+  async function handleSaveAttrs(playerId: string) {
+    const attrs: PlayerAttributes = {
+      tiro: Math.min(99, Math.max(0, parseInt(attrValues.tiro ?? '0', 10) || 0)),
+      pase: Math.min(99, Math.max(0, parseInt(attrValues.pase ?? '0', 10) || 0)),
+      defensa: Math.min(99, Math.max(0, parseInt(attrValues.defensa ?? '0', 10) || 0)),
+      fisico: Math.min(99, Math.max(0, parseInt(attrValues.fisico ?? '0', 10) || 0)),
+      stamina: Math.min(99, Math.max(0, parseInt(attrValues.stamina ?? '0', 10) || 0)),
+      vision: Math.min(99, Math.max(0, parseInt(attrValues.vision ?? '0', 10) || 0)),
+    }
+    setAttrSaving(true)
+    await updatePlayerAttributes(playerId, attrs)
+    setAttrSaving(false)
+    setEditingAttrsFor(null)
+  }
+
+  async function handleRemove(playerId: string) {
+    if (confirmRemoveId !== playerId) {
+      setConfirmRemoveId(playerId)
+      return
+    }
+    await removePlayer(playerId)
+    setConfirmRemoveId(null)
+  }
+
+  return (
+    <section className="flex flex-col gap-4">
+      <h2 className="text-lg font-bold text-orange-400 uppercase tracking-widest">Roster</h2>
+
+      {/* Team selector */}
+      <div className="flex flex-col gap-1">
+        <label className="text-xs text-gray-500 uppercase tracking-widest">Select team</label>
+        <select
+          value={selectedTeamId}
+          onChange={(e) => setSelectedTeamId(e.target.value)}
+          className="w-full px-4 py-3 rounded-xl bg-gray-800 border border-gray-700 text-white focus:outline-none focus:border-orange-400 min-h-12"
+        >
+          <option value="">— choose a team —</option>
+          {teams.map((t) => (
+            <option key={t.id} value={t.id}>{t.name}</option>
+          ))}
+        </select>
+      </div>
+
+      {selectedTeamId && (
+        <>
+          {/* Add player form */}
+          <form onSubmit={handleAddPlayer} className="flex flex-col gap-3 p-4 rounded-2xl bg-gray-900 border border-gray-800">
+            <p className="text-xs uppercase tracking-widest text-gray-400">Add player</p>
+            <input
+              type="text"
+              value={displayName}
+              onChange={(e) => setDisplayName(e.target.value)}
+              required
+              placeholder="Nombre + inicial (e.g. Juan G.)"
+              className="w-full px-4 py-3 rounded-xl bg-gray-800 border border-gray-700 text-white placeholder-gray-600 focus:outline-none focus:border-orange-400 min-h-12"
+            />
+            <div className="flex gap-2">
+              <input
+                type="number"
+                value={number}
+                onChange={(e) => setNumber(e.target.value)}
+                required
+                min={1}
+                max={99}
+                placeholder="# (1–99)"
+                className="w-28 px-4 py-3 rounded-xl bg-gray-800 border border-gray-700 text-white placeholder-gray-600 focus:outline-none focus:border-orange-400 min-h-12"
+              />
+              <select
+                value={position}
+                onChange={(e) => setPosition(e.target.value as PlayerPosition)}
+                className="flex-1 px-4 py-3 rounded-xl bg-gray-800 border border-gray-700 text-white focus:outline-none focus:border-orange-400 min-h-12"
+              >
+                {(Object.entries(POSITION_LABELS) as [PlayerPosition, string][]).map(([code, label]) => (
+                  <option key={code} value={code}>{label}</option>
+                ))}
+              </select>
+            </div>
+            {localError && <p className="text-sm text-red-400">{localError}</p>}
+            <button
+              type="submit"
+              disabled={submitting || !displayName.trim() || !number}
+              className="flex items-center justify-center px-6 py-3 rounded-xl bg-orange-400 text-gray-950 font-bold min-h-12 disabled:opacity-40 active:scale-95 transition-transform"
+            >
+              {submitting ? 'Adding…' : 'Add player'}
+            </button>
+          </form>
+
+          {/* Player list */}
+          {playersLoading ? (
+            <p className="text-sm text-gray-500 text-center py-4">Loading…</p>
+          ) : players.length === 0 ? (
+            <p className="text-sm text-gray-500 text-center py-4">No players yet. Add the first one above.</p>
+          ) : (
+            <ul className="flex flex-col gap-2">
+              {players.map((player) => (
+                <li key={player.id} className="flex flex-col gap-2 p-3 rounded-xl bg-gray-900 border border-gray-800">
+                  <div className="flex items-center gap-3">
+                    <span className="text-orange-400 font-mono font-bold text-sm w-8 shrink-0">#{player.number}</span>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold truncate">{player.display_name}</p>
+                      <p className="text-xs text-gray-400">{POSITION_LABELS[player.position]}</p>
+                    </div>
+                    <div className="flex gap-1 shrink-0">
+                      <button
+                        onClick={() => startEditAttrs(player.id)}
+                        className="px-2 py-1 rounded-lg bg-gray-800 border border-gray-700 text-xs text-gray-300 hover:border-orange-400 hover:text-orange-400 transition-colors min-h-8"
+                      >
+                        Attrs
+                      </button>
+                      <button
+                        onClick={() => void handleRemove(player.id)}
+                        className={`px-2 py-1 rounded-lg border text-xs transition-colors min-h-8 ${
+                          confirmRemoveId === player.id
+                            ? 'bg-red-950 border-red-700 text-red-400'
+                            : 'bg-gray-800 border-gray-700 text-gray-400 hover:border-red-500 hover:text-red-400'
+                        }`}
+                      >
+                        {confirmRemoveId === player.id ? 'Confirm?' : 'Remove'}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Inline attribute editor */}
+                  {editingAttrsFor === player.id && (
+                    <div className="flex flex-col gap-2 pt-2 border-t border-gray-800">
+                      <div className="grid grid-cols-2 gap-2">
+                        {ATTR_KEYS.map((key) => (
+                          <div key={key} className="flex items-center gap-2">
+                            <label className="text-xs text-gray-400 uppercase w-16 shrink-0">{ATTR_LABELS[key]}</label>
+                            <input
+                              type="number"
+                              min={0}
+                              max={99}
+                              value={attrValues[key] ?? '0'}
+                              onChange={(e) => setAttrValues((prev) => ({ ...prev, [key]: e.target.value }))}
+                              className="w-full px-2 py-1 rounded-lg bg-gray-800 border border-gray-700 text-white text-sm focus:outline-none focus:border-orange-400"
+                            />
+                          </div>
+                        ))}
+                      </div>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => void handleSaveAttrs(player.id)}
+                          disabled={attrSaving}
+                          className="flex-1 px-4 py-2 rounded-xl bg-orange-400 text-gray-950 font-bold text-sm disabled:opacity-40 active:scale-95 transition-transform"
+                        >
+                          {attrSaving ? 'Saving…' : 'Save attributes'}
+                        </button>
+                        <button
+                          onClick={() => setEditingAttrsFor(null)}
+                          className="px-4 py-2 rounded-xl bg-gray-800 border border-gray-700 text-sm text-gray-400 hover:text-white transition-colors"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </li>
+              ))}
+            </ul>
+          )}
+        </>
+      )}
+    </section>
   )
 }
 
@@ -330,6 +582,7 @@ export function AdminPage() {
 
         <TeamsSection teams={teams} loading={teamsLoading} />
         <MatchesSection matches={matches} teams={teams} loading={matchesLoading} />
+        <RosterSection teams={teams} />
       </div>
     </div>
   )

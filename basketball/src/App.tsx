@@ -3,6 +3,7 @@ import { AdminPage } from './pages/AdminPage'
 import { LoginPage } from './pages/LoginPage'
 import { ViewerPage } from './pages/ViewerPage'
 import ScorekeeperPage from './pages/ScorekeeperPage'
+import { PlayerCardPage } from './pages/PlayerCardPage'
 
 export default function App() {
   return (
@@ -13,6 +14,7 @@ export default function App() {
         <Route path="/admin" element={<AdminPage />} />
         <Route path="/match/:id/view" element={<ViewerPage />} />
         <Route path="/match/:id" element={<ScorekeeperPage />} />
+        <Route path="/player/:id/card" element={<PlayerCardPage />} />
       </Routes>
     </BrowserRouter>
   )
