@@ -13,7 +13,7 @@ export default defineConfig({
       includeAssets: ['favicon.svg', 'icons/*.png', 'fonts/*.woff2'],
       manifest: {
         name: 'BasketballLab',
-        short_name: 'BBL',
+        short_name: 'BasketLab',
         description: 'Live basketball scoreboard, tournament tracker, and player profiles',
         start_url: '/',
         display: 'standalone',
