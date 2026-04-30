@@ -1,10 +1,46 @@
 import { useEffect, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { supabase, isSupabaseConfigured } from '../lib/supabase'
-import { useTournamentStore, computeStandings } from '../stores/useTournamentStore'
+import { useTournamentStore, computeStandingsByGroup } from '../stores/useTournamentStore'
+import type { StandingRow } from '../stores/useTournamentStore'
 import { useTeamsStore } from '../stores/useTeamsStore'
 import { BackButton } from '../components/BackButton'
 import type { Match, Tournament } from '../types'
+
+function StandingsTable({ rows }: { rows: StandingRow[] }) {
+  return (
+    <div className="overflow-x-auto rounded-xl border border-bbl-border">
+      <table className="w-full text-sm">
+        <thead>
+          <tr className="text-xs text-bbl-text-muted uppercase tracking-wider border-b border-bbl-border">
+            <th className="text-left px-3 py-2">#</th>
+            <th className="text-left px-3 py-2">Equipo</th>
+            <th className="text-center px-3 py-2">P</th>
+            <th className="text-center px-3 py-2">G</th>
+            <th className="text-center px-3 py-2">D</th>
+            <th className="text-center px-3 py-2">Pts</th>
+            <th className="text-center px-3 py-2">DP</th>
+            <th className="text-center px-3 py-2">PF</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((row, i) => (
+            <tr key={row.team.id} className="border-b border-bbl-border last:border-0">
+              <td className="px-3 py-2 text-bbl-text-muted tabular-nums">{i + 1}</td>
+              <td className="px-3 py-2 font-semibold text-bbl-text">{row.team.name}</td>
+              <td className="px-3 py-2 text-center tabular-nums text-bbl-text">{row.played}</td>
+              <td className="px-3 py-2 text-center tabular-nums text-bbl-score">{row.wins}</td>
+              <td className="px-3 py-2 text-center tabular-nums text-bbl-clock">{row.losses}</td>
+              <td className="px-3 py-2 text-center tabular-nums font-bold text-bbl-accent">{row.points}</td>
+              <td className="px-3 py-2 text-center tabular-nums text-bbl-text">{row.gd > 0 ? `+${row.gd}` : row.gd}</td>
+              <td className="px-3 py-2 text-center tabular-nums text-bbl-text">{row.gf}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  )
+}
 
 function statusBadge(status: Tournament['status']) {
   const map: Record<Tournament['status'], { label: string; colour: string }> = {
@@ -90,9 +126,9 @@ export function TournamentPage() {
     )
   }
 
-  const standings = computeStandings(teams, groupMatches, tournamentTeams)
+  const groupStandings = computeStandingsByGroup(teams, groupMatches, tournamentTeams)
 
-  const showStandings =
+  const showGroups =
     currentTournament.status === 'group_phase' ||
     currentTournament.status === 'knockout' ||
     currentTournament.status === 'finished'
@@ -123,56 +159,37 @@ export function TournamentPage() {
           </Link>
         )}
 
-        {showStandings && (
-          <section className="flex flex-col gap-3">
-            <h2 className="text-lg font-bold text-bbl-accent uppercase tracking-widest">Clasificación</h2>
-            {standings.length === 0 ? (
-              <p className="text-sm text-bbl-text-muted text-center py-4">Sin resultados todavía.</p>
-            ) : (
-              <div className="overflow-x-auto rounded-xl border border-bbl-border">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="text-xs text-bbl-text-muted uppercase tracking-wider border-b border-bbl-border">
-                      <th className="text-left px-3 py-2">#</th>
-                      <th className="text-left px-3 py-2">Equipo</th>
-                      <th className="text-center px-3 py-2">P</th>
-                      <th className="text-center px-3 py-2">G</th>
-                      <th className="text-center px-3 py-2">D</th>
-                      <th className="text-center px-3 py-2">Pts</th>
-                      <th className="text-center px-3 py-2">DP</th>
-                      <th className="text-center px-3 py-2">PF</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {standings.map((row, i) => (
-                      <tr key={row.team.id} className="border-b border-bbl-border last:border-0">
-                        <td className="px-3 py-2 text-bbl-text-muted tabular-nums">{i + 1}</td>
-                        <td className="px-3 py-2 font-semibold text-bbl-text">{row.team.name}</td>
-                        <td className="px-3 py-2 text-center tabular-nums text-bbl-text">{row.played}</td>
-                        <td className="px-3 py-2 text-center tabular-nums text-bbl-score">{row.wins}</td>
-                        <td className="px-3 py-2 text-center tabular-nums text-bbl-clock">{row.losses}</td>
-                        <td className="px-3 py-2 text-center tabular-nums font-bold text-bbl-accent">{row.points}</td>
-                        <td className="px-3 py-2 text-center tabular-nums text-bbl-text">{row.gd > 0 ? `+${row.gd}` : row.gd}</td>
-                        <td className="px-3 py-2 text-center tabular-nums text-bbl-text">{row.gf}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </section>
-        )}
+        {showGroups && groupStandings.map(({ groupName, rows }) => {
+          const label = groupName ? `Grupo ${groupName}` : 'Clasificación'
+          const groupTeamIds = new Set(
+            tournamentTeams
+              .filter((tt) => tt.group_name === groupName)
+              .map((tt) => tt.team_id)
+          )
+          const groupTournamentMatches = showSchedule
+            ? tournamentMatches.filter(
+                (tm) =>
+                  tm.phase === 'group' &&
+                  tm.home_team_id !== null &&
+                  tm.away_team_id !== null &&
+                  groupTeamIds.has(tm.home_team_id!) &&
+                  groupTeamIds.has(tm.away_team_id!)
+              )
+            : []
 
-        {showSchedule && (
-          <section className="flex flex-col gap-3">
-            <h2 className="text-lg font-bold text-bbl-accent uppercase tracking-widest">Calendario</h2>
-            {tournamentMatches.filter((tm) => tm.phase === 'group').length === 0 ? (
-              <p className="text-sm text-bbl-text-muted text-center py-4">Calendario no generado aún.</p>
-            ) : (
-              <ul className="flex flex-col gap-2">
-                {tournamentMatches
-                  .filter((tm) => tm.phase === 'group')
-                  .map((tm) => {
+          return (
+            <section key={groupName ?? '__all__'} className="flex flex-col gap-3">
+              <h2 className="text-lg font-bold text-bbl-accent uppercase tracking-widest">{label}</h2>
+
+              {rows.length === 0 ? (
+                <p className="text-sm text-bbl-text-muted text-center py-4">Sin resultados todavía.</p>
+              ) : (
+                <StandingsTable rows={rows} />
+              )}
+
+              {showSchedule && groupTournamentMatches.length > 0 && (
+                <ul className="flex flex-col gap-2 mt-1">
+                  {groupTournamentMatches.map((tm) => {
                     const homeTeam = teams.find((t) => t.id === tm.home_team_id)
                     const awayTeam = teams.find((t) => t.id === tm.away_team_id)
                     const liveMatch = groupMatches.find((m) => m.id === tm.match_id)
@@ -209,10 +226,15 @@ export function TournamentPage() {
                       </li>
                     )
                   })}
-              </ul>
-            )}
-          </section>
-        )}
+                </ul>
+              )}
+
+              {showSchedule && groupTournamentMatches.length === 0 && (
+                <p className="text-sm text-bbl-text-muted text-center py-2">Calendario no generado aún.</p>
+              )}
+            </section>
+          )
+        })}
       </div>
     </div>
   )
