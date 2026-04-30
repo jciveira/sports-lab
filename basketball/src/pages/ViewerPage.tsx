@@ -1,4 +1,5 @@
 import { useParams } from 'react-router-dom'
+import { Wifi, WifiOff } from 'lucide-react'
 import { useRealtimeMatch } from '../hooks/useRealtimeMatch'
 import { BackButton } from '../components/BackButton'
 
@@ -57,6 +58,7 @@ export function ViewerPage() {
   const homeName = homeTeam?.name ?? 'Local'
   const awayName = awayTeam?.name ?? 'Visitante'
   const clockSeconds = match.time_remaining_seconds ?? 0
+  const hasScorekeeper = !!match.scorekeeper_claimed_by
 
   return (
     <div className="relative min-h-screen bg-bbl-bg flex flex-col">
@@ -65,11 +67,24 @@ export function ViewerPage() {
         style={{ backgroundImage: 'url(/icons/team-badge.png)' }}
         aria-hidden="true"
       />
-      {isReconnecting && (
-        <div className="bg-bbl-warning/20 text-bbl-warning text-xs text-center py-1 px-4">
-          Reconectando…
-        </div>
-      )}
+
+      {/* Connection status bar */}
+      <div className="flex items-center justify-between px-4 py-2 border-b border-bbl-border">
+        {isReconnecting ? (
+          <span className="flex items-center gap-1.5 text-xs text-bbl-warning">
+            <WifiOff className="w-3.5 h-3.5" />
+            Reconectando…
+          </span>
+        ) : (
+          <span className="flex items-center gap-1.5 text-xs text-bbl-accent">
+            <Wifi className="w-3.5 h-3.5" />
+            En línea
+          </span>
+        )}
+        {!hasScorekeeper && !isFinished && (
+          <span className="text-[10px] text-bbl-text-muted">Sin marcador activo</span>
+        )}
+      </div>
 
       {isFinished && (
         <div className="bg-bbl-accent/20 border-b border-bbl-accent/40 text-bbl-accent text-center py-3 px-4 text-lg font-semibold tracking-wide">
@@ -89,6 +104,9 @@ export function ViewerPage() {
 
         <div className="w-full max-w-sm grid grid-cols-3 items-center gap-2">
           <div className="flex flex-col items-center gap-1">
+            {homeTeam?.badge_url && (
+              <img src={homeTeam.badge_url} alt="" className="w-10 h-10 object-contain rounded-md" />
+            )}
             <span className="text-bbl-text text-2xl font-bold text-center leading-tight">
               {homeName}
             </span>
@@ -102,6 +120,9 @@ export function ViewerPage() {
           </div>
 
           <div className="flex flex-col items-center gap-1">
+            {awayTeam?.badge_url && (
+              <img src={awayTeam.badge_url} alt="" className="w-10 h-10 object-contain rounded-md" />
+            )}
             <span className="text-bbl-text text-2xl font-bold text-center leading-tight">
               {awayName}
             </span>
