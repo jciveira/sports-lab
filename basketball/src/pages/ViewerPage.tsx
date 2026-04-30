@@ -1,5 +1,6 @@
 import { useParams } from 'react-router-dom'
 import { useRealtimeMatch } from '../hooks/useRealtimeMatch'
+import { BackButton } from '../components/BackButton'
 
 function quarterLabel(quarter: number): string {
   if (quarter <= 4) return `Q${quarter}`
@@ -19,10 +20,11 @@ export function ViewerPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-950 flex items-center justify-center">
+      <div className="relative min-h-screen bg-bbl-bg flex items-center justify-center">
+        <BackButton to="/partidos" />
         <div className="flex flex-col items-center gap-4">
-          <div className="w-10 h-10 border-4 border-orange-400 border-t-transparent rounded-full animate-spin" />
-          <p className="text-gray-400 text-sm">Loading match…</p>
+          <div className="w-10 h-10 border-4 border-bbl-accent border-t-transparent rounded-full animate-spin" />
+          <p className="text-bbl-text-muted text-sm">Cargando partido…</p>
         </div>
       </div>
     )
@@ -30,18 +32,20 @@ export function ViewerPage() {
 
   if (error || !match) {
     return (
-      <div className="min-h-screen bg-gray-950 flex items-center justify-center">
-        <p className="text-red-400 text-lg">{error ?? 'Match not found.'}</p>
+      <div className="relative min-h-screen bg-bbl-bg flex items-center justify-center">
+        <BackButton to="/partidos" />
+        <p className="text-bbl-clock text-lg">{error ?? 'Partido no encontrado.'}</p>
       </div>
     )
   }
 
   if (match.status === 'scheduled') {
     return (
-      <div className="min-h-screen bg-gray-950 flex flex-col items-center justify-center gap-4 px-4">
-        <p className="text-gray-300 text-2xl font-semibold text-center">Match not started yet</p>
+      <div className="relative min-h-screen bg-bbl-bg flex flex-col items-center justify-center gap-4 px-4">
+        <BackButton to="/partidos" />
+        <p className="text-bbl-text text-2xl font-semibold text-center">Partido no iniciado</p>
         {homeTeam && awayTeam && (
-          <p className="text-gray-500 text-base text-center">
+          <p className="text-bbl-text-muted text-base text-center">
             {homeTeam.name} vs {awayTeam.name}
           </p>
         )}
@@ -50,77 +54,68 @@ export function ViewerPage() {
   }
 
   const isFinished = match.status === 'finished'
-  const homeName = homeTeam?.name ?? 'Home'
-  const awayName = awayTeam?.name ?? 'Away'
+  const homeName = homeTeam?.name ?? 'Local'
+  const awayName = awayTeam?.name ?? 'Visitante'
   const clockSeconds = match.time_remaining_seconds ?? 0
 
   return (
-    <div className="min-h-screen bg-gray-950 flex flex-col">
-      {/* Reconnecting banner */}
+    <div className="min-h-screen bg-bbl-bg flex flex-col">
       {isReconnecting && (
-        <div className="bg-yellow-900/80 text-yellow-300 text-xs text-center py-1 px-4">
-          Reconnecting to live updates…
+        <div className="bg-bbl-warning/20 text-bbl-warning text-xs text-center py-1 px-4">
+          Reconectando…
         </div>
       )}
 
-      {/* Finished banner */}
       {isFinished && (
-        <div className="bg-orange-500/20 border-b border-orange-500/40 text-orange-300 text-center py-3 px-4 text-lg font-semibold tracking-wide">
-          Match finished
+        <div className="bg-bbl-accent/20 border-b border-bbl-accent/40 text-bbl-accent text-center py-3 px-4 text-lg font-semibold tracking-wide">
+          Partido finalizado
         </div>
       )}
 
-      {/* Main scoreboard */}
       <div className="flex-1 flex flex-col items-center justify-center px-4 py-8 gap-8">
-        {/* Quarter & Clock */}
         <div className="flex flex-col items-center gap-1">
-          <span className="text-orange-400 font-bold text-2xl tracking-widest uppercase">
+          <span className="text-bbl-accent font-bold text-2xl tracking-widest uppercase">
             {quarterLabel(match.quarter)}
           </span>
-          <span className="text-gray-200 text-4xl font-mono font-semibold tabular-nums">
+          <span className="text-bbl-text text-4xl font-mono font-semibold tabular-nums">
             {formatClock(clockSeconds)}
           </span>
         </div>
 
-        {/* Score row */}
         <div className="w-full max-w-sm grid grid-cols-3 items-center gap-2">
-          {/* Home team */}
           <div className="flex flex-col items-center gap-1">
-            <span className="text-gray-100 text-2xl font-bold text-center leading-tight">
+            <span className="text-bbl-text text-2xl font-bold text-center leading-tight">
               {homeName}
             </span>
-            <span className="text-white text-7xl font-extrabold tabular-nums leading-none">
+            <span className="text-bbl-text text-7xl font-extrabold tabular-nums leading-none">
               {match.home_score}
             </span>
           </div>
 
-          {/* Separator */}
           <div className="flex justify-center">
-            <span className="text-gray-600 text-5xl font-light">–</span>
+            <span className="text-bbl-border text-5xl font-light">–</span>
           </div>
 
-          {/* Away team */}
           <div className="flex flex-col items-center gap-1">
-            <span className="text-gray-100 text-2xl font-bold text-center leading-tight">
+            <span className="text-bbl-text text-2xl font-bold text-center leading-tight">
               {awayName}
             </span>
-            <span className="text-white text-7xl font-extrabold tabular-nums leading-none">
+            <span className="text-bbl-text text-7xl font-extrabold tabular-nums leading-none">
               {match.away_score}
             </span>
           </div>
         </div>
 
-        {/* Team fouls */}
         <div className="w-full max-w-sm grid grid-cols-2 gap-4 mt-2">
-          <div className="flex flex-col items-center bg-gray-900 rounded-xl py-3 px-4">
-            <span className="text-gray-400 text-xs uppercase tracking-widest mb-1">Team Fouls</span>
-            <span className="text-gray-100 text-3xl font-bold tabular-nums">{homeFouls}</span>
-            <span className="text-gray-500 text-xs mt-1 truncate max-w-full">{homeName}</span>
+          <div className="flex flex-col items-center bg-bbl-surface rounded-xl py-3 px-4">
+            <span className="text-bbl-text-muted text-xs uppercase tracking-widest mb-1">Faltas</span>
+            <span className="text-bbl-text text-3xl font-bold tabular-nums">{homeFouls}</span>
+            <span className="text-bbl-text-muted text-xs mt-1 truncate max-w-full">{homeName}</span>
           </div>
-          <div className="flex flex-col items-center bg-gray-900 rounded-xl py-3 px-4">
-            <span className="text-gray-400 text-xs uppercase tracking-widest mb-1">Team Fouls</span>
-            <span className="text-gray-100 text-3xl font-bold tabular-nums">{awayFouls}</span>
-            <span className="text-gray-500 text-xs mt-1 truncate max-w-full">{awayName}</span>
+          <div className="flex flex-col items-center bg-bbl-surface rounded-xl py-3 px-4">
+            <span className="text-bbl-text-muted text-xs uppercase tracking-widest mb-1">Faltas</span>
+            <span className="text-bbl-text text-3xl font-bold tabular-nums">{awayFouls}</span>
+            <span className="text-bbl-text-muted text-xs mt-1 truncate max-w-full">{awayName}</span>
           </div>
         </div>
       </div>

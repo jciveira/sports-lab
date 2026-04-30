@@ -44,19 +44,19 @@ export function AdminGuard() {
   }
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-dvh bg-gray-950 p-6 gap-6">
+    <div className="flex flex-col items-center justify-center min-h-dvh bg-bbl-bg p-6 gap-6">
       <Link
         to="/"
-        className="absolute top-4 left-4 text-gray-500 hover:text-white transition-colors"
+        className="absolute top-4 left-4 text-bbl-text-muted hover:text-bbl-text transition-colors"
         aria-label="Volver al inicio"
       >
         <ArrowLeft className="w-5 h-5" />
       </Link>
 
       <div className="flex flex-col items-center gap-2">
-        <Lock className="w-8 h-8 text-orange-400" />
-        <h1 className="text-xl font-bold text-white">Administración</h1>
-        <p className="text-sm text-gray-400">Introduce el PIN de acceso</p>
+        <Lock className="w-8 h-8 text-bbl-accent" />
+        <h1 className="text-xl font-bold text-bbl-text">Administración</h1>
+        <p className="text-sm text-bbl-text-muted">Introduce el PIN de acceso</p>
       </div>
 
       <form onSubmit={handleSubmit} className="flex flex-col items-center gap-3 w-full max-w-xs">
@@ -68,13 +68,13 @@ export function AdminGuard() {
           placeholder="PIN"
           maxLength={10}
           autoFocus
-          className="w-full px-4 py-3 rounded-xl bg-gray-900 border border-gray-700 text-center text-2xl tracking-[0.3em] font-mono text-white placeholder:text-gray-600 placeholder:tracking-normal placeholder:text-base focus:outline-none focus:border-orange-400 transition-colors"
+          className="w-full px-4 py-3 rounded-xl bg-bbl-surface border border-bbl-border text-center text-2xl tracking-[0.3em] font-mono text-bbl-text placeholder:text-bbl-text-muted/40 placeholder:tracking-normal placeholder:text-base focus:outline-none focus:border-bbl-accent transition-colors"
         />
-        {error && <p className="text-sm text-red-400">PIN incorrecto</p>}
+        {error && <p className="text-sm text-bbl-clock">PIN incorrecto</p>}
         <button
           type="submit"
           disabled={checking || pin.trim().length === 0}
-          className="w-full px-6 py-3 rounded-xl bg-orange-400 text-gray-950 font-bold disabled:opacity-40 active:scale-95 transition-transform"
+          className="w-full px-6 py-3 rounded-xl bg-bbl-accent text-bbl-bg font-bold disabled:opacity-40 active:scale-95 transition-transform"
         >
           {checking ? 'Verificando...' : 'Acceder'}
         </button>

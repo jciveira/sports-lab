@@ -1,1 +1,47 @@
 @import "tailwindcss";
+
+@theme {
+  /* BasketballLab color palette — dark-first design */
+  --color-bbl-bg: #0f1117;
+  --color-bbl-surface: #1c1f2e;
+  --color-bbl-surface-light: #272a3a;
+  --color-bbl-border: #2e3248;
+  --color-bbl-text: #e2e2e8;
+  --color-bbl-text-muted: #7878a0;
+  --color-bbl-accent: #f97316;
+  --color-bbl-score: #fb923c;
+  --color-bbl-clock: #ef4444;
+  --color-bbl-warning: #facc15;
+  --color-bbl-team-home: #60a5fa;
+  --color-bbl-team-away: #f472b6;
+}
+
+/* 7-segment LED font for scores/clock */
+@font-face {
+  font-family: "DSEG7";
+  src: url("/fonts/DSEG7Classic-Bold.woff2") format("woff2");
+  font-weight: bold;
+  font-display: swap;
+}
+
+body {
+  margin: 0;
+  background: var(--color-bbl-bg);
+  color: var(--color-bbl-text);
+  font-family: system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  overscroll-behavior: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+#root {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Utility for scoreboard digits */
+.font-score {
+  font-family: "DSEG7", monospace;
+}
