@@ -4,8 +4,11 @@ import { useTeamsStore } from '../stores/useTeamsStore'
 import { usePlayersStore } from '../stores/usePlayersStore'
 
 export function JugadoresTab() {
-  const { teams, fetchTeams } = useTeamsStore()
-  const { players, loading, fetchPlayersForTeam } = usePlayersStore()
+  const teams = useTeamsStore((s) => s.teams)
+  const fetchTeams = useTeamsStore((s) => s.fetchTeams)
+  const players = usePlayersStore((s) => s.players)
+  const loading = usePlayersStore((s) => s.loading)
+  const fetchPlayersForTeam = usePlayersStore((s) => s.fetchPlayersForTeam)
 
   useEffect(() => {
     void fetchTeams()

@@ -12,8 +12,11 @@ const STATUS_LABEL: Record<string, { label: string; className: string }> = {
 }
 
 export function PartidosTab() {
-  const { matches, loading, fetchMatches } = useMatchesStore()
-  const { teams, fetchTeams } = useTeamsStore()
+  const matches = useMatchesStore((s) => s.matches)
+  const loading = useMatchesStore((s) => s.loading)
+  const fetchMatches = useMatchesStore((s) => s.fetchMatches)
+  const teams = useTeamsStore((s) => s.teams)
+  const fetchTeams = useTeamsStore((s) => s.fetchTeams)
 
   useEffect(() => {
     void fetchMatches()
