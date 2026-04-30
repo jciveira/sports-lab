@@ -1,9 +1,11 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { useTournamentStore } from '../stores/useTournamentStore'
 import { useTeamsStore } from '../stores/useTeamsStore'
 import { BackButton } from '../components/BackButton'
 import type { TournamentMatch } from '../types'
+
+const ADMIN_SESSION_KEY = 'bbl_admin_auth'
 
 const PHASE_LABELS: Record<TournamentMatch['phase'], string> = {
   group: 'Grupos',
@@ -63,11 +65,15 @@ export function TournamentBracketPage() {
   const loadTournament = useTournamentStore((s) => s.loadTournament)
   const currentTournament = useTournamentStore((s) => s.currentTournament)
   const tournamentMatches = useTournamentStore((s) => s.tournamentMatches)
+  const advanceWinner = useTournamentStore((s) => s.advanceWinner)
   const loading = useTournamentStore((s) => s.loading)
   const error = useTournamentStore((s) => s.error)
 
   const teams = useTeamsStore((s) => s.teams)
   const fetchTeams = useTeamsStore((s) => s.fetchTeams)
+
+  const isAdmin = sessionStorage.getItem(ADMIN_SESSION_KEY) === 'true'
+  const [advancingId, setAdvancingId] = useState<string | null>(null)
 
   useEffect(() => {
     if (!id) return
@@ -137,16 +143,37 @@ export function TournamentBracketPage() {
                       {roundMatches.map((tm) => {
                         const home = teamName(tm.home_team_id)
                         const away = teamName(tm.away_team_id)
+                        const matchFinished = tm.match_id != null && tm.home_team_id != null && tm.away_team_id != null
                         return (
-                          <BracketSlot
-                            key={tm.id}
-                            tm={tm}
-                            teamName={home}
-                            opponentName={away}
-                            score="–"
-                            opponentScore="–"
-                            isWinner={false}
-                          />
+                          <div key={tm.id} className="flex flex-col gap-1">
+                            <BracketSlot
+                              tm={tm}
+                              teamName={home}
+                              opponentName={away}
+                              score="–"
+                              opponentScore="–"
+                              isWinner={false}
+                            />
+                            {isAdmin && matchFinished && (
+                              <div className="flex gap-1">
+                                {[tm.home_team_id!, tm.away_team_id!].map((teamId) => (
+                                  <button
+                                    key={teamId}
+                                    disabled={advancingId === tm.id}
+                                    onClick={async () => {
+                                      setAdvancingId(tm.id)
+                                      await advanceWinner(tm.id, teamId)
+                                      await loadTournament(id!)
+                                      setAdvancingId(null)
+                                    }}
+                                    className="flex-1 px-2 py-1 rounded-lg bg-bbl-accent/10 border border-bbl-accent/40 text-bbl-accent text-xs font-semibold truncate disabled:opacity-40 active:scale-95 transition-transform min-h-8"
+                                  >
+                                    {advancingId === tm.id ? '…' : `Ganador: ${teamName(teamId)}`}
+                                  </button>
+                                ))}
+                              </div>
+                            )}
+                          </div>
                         )
                       })}
                     </div>
