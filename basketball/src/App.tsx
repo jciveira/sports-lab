@@ -12,6 +12,7 @@ import { PartidosTab } from './pages/PartidosTab'
 import { TorneosTab } from './pages/TorneosTab'
 import { JugadoresTab } from './pages/JugadoresTab'
 import { MasTab } from './pages/MasTab'
+import { SuggestionsPage } from './pages/SuggestionsPage'
 import { AdminTorneosPage } from './pages/admin/AdminTorneosPage'
 import { AdminEquiposPage } from './pages/admin/AdminEquiposPage'
 import { AdminJugadoresPage } from './pages/admin/AdminJugadoresPage'
@@ -34,6 +35,7 @@ export default function App() {
         <Route path="/" element={<Navigate to="/partidos" replace />} />
 
         {/* Detail pages — full screen, no tab bar */}
+        <Route path="/suggestions" element={<SuggestionsPage />} />
         <Route path="/match/:id/view" element={<ViewerPage />} />
         <Route path="/match/:id" element={<ScorekeeperPage />} />
         <Route path="/player/:id/card" element={<PlayerCardPage />} />
