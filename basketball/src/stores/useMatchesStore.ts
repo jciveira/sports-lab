@@ -16,6 +16,7 @@ interface MatchesState {
   error: string | null
   fetchMatches: () => Promise<void>
   createMatch: (homeTeamId: string, awayTeamId: string, quarterDuration: 8 | 10) => Promise<MatchWithDuration | null>
+  updateMatch: (id: string, patch: Partial<Pick<Match, 'home_score' | 'away_score' | 'venue_id' | 'scheduled_at' | 'not_played' | 'status'>>) => Promise<boolean>
 }
 
 export const useMatchesStore = create<MatchesState>((set, get) => ({
@@ -70,6 +71,23 @@ export const useMatchesStore = create<MatchesState>((set, get) => ({
     } catch (err) {
       set({ error: err instanceof Error ? err.message : 'Failed to create match' })
       return null
+    }
+  },
+
+  async updateMatch(id, patch) {
+    if (!isSupabaseConfigured) return false
+    try {
+      const { error } = await db.from('matches').update(patch).eq('id', id)
+      if (error) throw new Error(error.message as string)
+      set({
+        matches: get().matches.map((m) =>
+          m.id === id ? { ...m, ...patch } : m
+        ),
+      })
+      return true
+    } catch (err) {
+      set({ error: err instanceof Error ? err.message : 'Failed to update match' })
+      return false
     }
   },
 }))

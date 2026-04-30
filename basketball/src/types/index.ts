@@ -73,6 +73,14 @@ export interface Player {
   created_at: string
 }
 
+export interface Venue {
+  id: string
+  tournament_id: string
+  name: string
+  address: string | null
+  created_at: string
+}
+
 export interface Match {
   id: string
   tournament_id: string | null
@@ -88,6 +96,9 @@ export interface Match {
   started_at: string | null
   finished_at: string | null
   created_at: string
+  venue_id: string | null
+  scheduled_at: string | null
+  not_played: boolean
 }
 
 export interface MatchEvent {
