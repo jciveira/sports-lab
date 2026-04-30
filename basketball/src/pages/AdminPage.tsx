@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useNavigate, Link } from 'react-router-dom'
-import { supabase, isSupabaseConfigured } from '../lib/supabase'
+import { Link } from 'react-router-dom'
 import { useTeamsStore } from '../stores/useTeamsStore'
 import { useMatchesStore, type MatchWithDuration } from '../stores/useMatchesStore'
 import { usePlayersStore } from '../stores/usePlayersStore'
@@ -801,9 +800,6 @@ function TournamentSection({ teams }: { teams: Team[] }) {
 // ─── Admin page ──────────────────────────────────────────────────────────────
 
 export function AdminPage() {
-  const navigate = useNavigate()
-  const [authChecked, setAuthChecked] = useState(false)
-
   const teams = useTeamsStore((s) => s.teams)
   const teamsLoading = useTeamsStore((s) => s.loading)
   const fetchTeams = useTeamsStore((s) => s.fetchTeams)
@@ -813,35 +809,9 @@ export function AdminPage() {
   const fetchMatches = useMatchesStore((s) => s.fetchMatches)
 
   useEffect(() => {
-    async function checkAuth() {
-      if (!isSupabaseConfigured) {
-        setAuthChecked(true)
-        return
-      }
-      const { data } = await supabase.auth.getSession()
-      if (!data.session) {
-        navigate('/login')
-        return
-      }
-      setAuthChecked(true)
-      void fetchTeams()
-      void fetchMatches()
-    }
-    void checkAuth()
-  }, [navigate, fetchTeams, fetchMatches])
-
-  async function handleSignOut() {
-    await supabase.auth.signOut()
-    navigate('/login')
-  }
-
-  if (!authChecked) {
-    return (
-      <div className="min-h-screen bg-gray-950 flex items-center justify-center">
-        <p className="text-gray-400 text-sm">Checking auth…</p>
-      </div>
-    )
-  }
+    void fetchTeams()
+    void fetchMatches()
+  }, [fetchTeams, fetchMatches])
 
   return (
     <div className="min-h-screen bg-gray-950 text-white">
@@ -852,22 +822,7 @@ export function AdminPage() {
             <h1 className="text-2xl font-bold text-orange-400">Admin</h1>
             <p className="text-xs text-gray-500 mt-0.5">BasketballLab</p>
           </div>
-          {isSupabaseConfigured && (
-            <button
-              onClick={() => void handleSignOut()}
-              className="px-4 py-2 rounded-xl bg-gray-900 border border-gray-700 text-sm text-gray-400 hover:text-white hover:border-gray-500 transition-colors min-h-10 active:scale-95"
-            >
-              Sign out
-            </button>
-          )}
         </div>
-
-        {!isSupabaseConfigured && (
-          <div className="p-4 rounded-xl bg-yellow-950 border border-yellow-800 text-yellow-300 text-sm">
-            Supabase is not configured. Set <code className="font-mono text-xs">VITE_SUPABASE_URL</code> and{' '}
-            <code className="font-mono text-xs">VITE_SUPABASE_ANON_KEY</code> to enable data persistence.
-          </div>
-        )}
 
         <TeamsSection teams={teams} loading={teamsLoading} />
         <MatchesSection matches={matches} teams={teams} loading={matchesLoading} />

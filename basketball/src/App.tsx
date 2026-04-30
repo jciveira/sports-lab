@@ -1,6 +1,7 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { HomePage } from './pages/HomePage'
 import { AdminPage } from './pages/AdminPage'
-import { LoginPage } from './pages/LoginPage'
+import { AdminGuard } from './components/AdminGuard'
 import { ViewerPage } from './pages/ViewerPage'
 import ScorekeeperPage from './pages/ScorekeeperPage'
 import { PlayerCardPage } from './pages/PlayerCardPage'
@@ -11,9 +12,10 @@ export default function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<Navigate to="/admin" replace />} />
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/admin" element={<AdminPage />} />
+        <Route path="/" element={<HomePage />} />
+        <Route element={<AdminGuard />}>
+          <Route path="/admin" element={<AdminPage />} />
+        </Route>
         <Route path="/match/:id/view" element={<ViewerPage />} />
         <Route path="/match/:id" element={<ScorekeeperPage />} />
         <Route path="/player/:id/card" element={<PlayerCardPage />} />
