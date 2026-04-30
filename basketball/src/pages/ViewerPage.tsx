@@ -59,7 +59,12 @@ export function ViewerPage() {
   const clockSeconds = match.time_remaining_seconds ?? 0
 
   return (
-    <div className="min-h-screen bg-bbl-bg flex flex-col">
+    <div className="relative min-h-screen bg-bbl-bg flex flex-col">
+      <div
+        className="pointer-events-none absolute inset-0 bg-center bg-no-repeat bg-contain opacity-[0.07]"
+        style={{ backgroundImage: 'url(/icons/team-badge.png)' }}
+        aria-hidden="true"
+      />
       {isReconnecting && (
         <div className="bg-bbl-warning/20 text-bbl-warning text-xs text-center py-1 px-4">
           Reconectando…
