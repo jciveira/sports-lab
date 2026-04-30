@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { useTeamsStore } from '../stores/useTeamsStore'
 import { useMatchesStore, type MatchWithDuration } from '../stores/useMatchesStore'
 import { CollapsibleSection } from '../components/CollapsibleSection'
@@ -149,6 +150,18 @@ function MatchesSection({ matches, teams, loading }: { matches: MatchWithDuratio
                   <span className="text-xs text-bbl-text-muted font-mono truncate">/match/{match.id}/view</span>
                   <CopyButton url={viewerUrl} />
                 </div>
+                {match.status !== 'finished' && (
+                  <Link
+                    to={`/match/${match.id}`}
+                    className={`flex items-center justify-center px-4 py-2.5 rounded-xl font-bold text-sm min-h-11 active:scale-95 transition-transform ${
+                      match.status === 'scheduled'
+                        ? 'bg-bbl-accent text-bbl-bg'
+                        : 'bg-bbl-warning/20 border border-bbl-warning text-bbl-warning'
+                    }`}
+                  >
+                    {match.status === 'scheduled' ? 'Activar' : 'Continuar'}
+                  </Link>
+                )}
               </li>
             )
           })}
