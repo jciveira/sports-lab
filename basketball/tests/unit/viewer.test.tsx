@@ -166,7 +166,7 @@ describe('ViewerPage', () => {
     })
 
     await waitFor(() => {
-      expect(screen.getByText('Match not started yet')).toBeInTheDocument()
+      expect(screen.getByText('Partido no iniciado')).toBeInTheDocument()
     })
   })
 
@@ -208,7 +208,7 @@ describe('ViewerPage', () => {
     })
 
     await waitFor(() => {
-      expect(screen.getByText('Match finished')).toBeInTheDocument()
+      expect(screen.getByText('Partido finalizado')).toBeInTheDocument()
       expect(screen.getByText('98')).toBeInTheDocument()
       expect(screen.getByText('95')).toBeInTheDocument()
     })

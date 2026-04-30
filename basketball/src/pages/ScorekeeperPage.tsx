@@ -31,63 +31,59 @@ function TeamColumn({
 
   return (
     <div className="flex flex-col items-center gap-3 flex-1 px-2">
-      <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-wider truncate max-w-full">
+      <h2 className="text-sm font-semibold text-bbl-text-muted uppercase tracking-wider truncate max-w-full">
         {name}
       </h2>
 
-      {/* Score */}
-      <div className="text-5xl font-bold tabular-nums">{score}</div>
+      <div className="text-5xl font-bold tabular-nums text-bbl-text">{score}</div>
 
-      {/* Goal buttons */}
       <div className="flex flex-col gap-2 w-full">
         <button
           onClick={() => onGoal(2)}
-          className="min-h-14 rounded-xl bg-orange-500 hover:bg-orange-400 active:bg-orange-600 font-bold text-lg w-full transition-colors"
+          className="min-h-14 rounded-xl bg-bbl-accent hover:opacity-90 active:opacity-80 font-bold text-lg w-full text-bbl-bg transition-opacity"
         >
           +2
         </button>
         <button
           onClick={() => onGoal(3)}
-          className="min-h-14 rounded-xl bg-orange-500 hover:bg-orange-400 active:bg-orange-600 font-bold text-lg w-full transition-colors"
+          className="min-h-14 rounded-xl bg-bbl-accent hover:opacity-90 active:opacity-80 font-bold text-lg w-full text-bbl-bg transition-opacity"
         >
           +3
         </button>
         <button
           onClick={() => onGoal(1)}
-          className="min-h-14 rounded-xl bg-orange-400 hover:bg-orange-300 active:bg-orange-500 font-bold text-lg w-full transition-colors"
+          className="min-h-14 rounded-xl bg-bbl-score hover:opacity-90 active:opacity-80 font-bold text-lg w-full text-bbl-bg transition-opacity"
         >
           +1 FT
         </button>
       </div>
 
-      {/* Foul counter */}
       <div className="flex flex-col items-center gap-1 w-full">
         <button
           onClick={onFoul}
-          className="min-h-12 rounded-xl bg-red-700 hover:bg-red-600 active:bg-red-800 font-semibold text-sm w-full transition-colors"
+          className="min-h-12 rounded-xl bg-bbl-clock hover:opacity-90 active:opacity-80 font-semibold text-sm w-full text-white transition-opacity"
         >
-          Foul
+          Falta
         </button>
         <div className="flex items-center gap-2">
-          <span className="text-sm text-gray-300">
-            Fouls: <span className="font-bold text-white">{fouls}</span>
+          <span className="text-sm text-bbl-text">
+            Faltas: <span className="font-bold text-bbl-text">{fouls}</span>
           </span>
           {isBonus && (
-            <span className="text-xs font-bold bg-orange-500 text-white px-2 py-0.5 rounded-full">
+            <span className="text-xs font-bold bg-bbl-accent text-bbl-bg px-2 py-0.5 rounded-full">
               BONUS
             </span>
           )}
         </div>
       </div>
 
-      {/* Timeouts */}
       <div className="flex flex-col items-center gap-1 w-full">
         <div className="flex gap-1 justify-center">
           {Array.from({ length: 2 }).map((_, i) => (
             <div
               key={i}
               className={`w-4 h-4 rounded-full border-2 ${
-                i < timeouts ? 'bg-orange-500 border-orange-500' : 'border-gray-600 bg-transparent'
+                i < timeouts ? 'bg-bbl-accent border-bbl-accent' : 'border-bbl-border bg-transparent'
               }`}
             />
           ))}
@@ -95,9 +91,9 @@ function TeamColumn({
         <button
           onClick={onTimeout}
           disabled={timeouts <= 0}
-          className="min-h-10 rounded-xl bg-gray-700 hover:bg-gray-600 active:bg-gray-800 disabled:opacity-40 disabled:cursor-not-allowed text-sm font-semibold w-full transition-colors"
+          className="min-h-10 rounded-xl bg-bbl-surface-light hover:opacity-90 active:opacity-80 disabled:opacity-40 disabled:cursor-not-allowed text-sm font-semibold w-full text-bbl-text transition-opacity"
         >
-          Timeout ({timeouts})
+          Tiempo ({timeouts})
         </button>
       </div>
     </div>
@@ -113,17 +109,17 @@ function QuarterBreakOverlay({
 }) {
   const prevQuarter = quarter - 1
   const isHalftime = prevQuarter === 2
-  const breakLabel = isHalftime ? 'Halftime — 10 min' : `Q${prevQuarter} Break — 2 min`
+  const breakLabel = isHalftime ? 'Descanso — 10 min' : `Q${prevQuarter} Descanso — 2 min`
 
   return (
-    <div className="fixed inset-0 bg-gray-950/95 flex flex-col items-center justify-center gap-6 z-50">
-      <div className="text-3xl font-bold text-white">{breakLabel}</div>
-      <div className="text-gray-400 text-lg">Get ready for Q{quarter}</div>
+    <div className="fixed inset-0 bg-bbl-bg/95 flex flex-col items-center justify-center gap-6 z-50">
+      <div className="text-3xl font-bold text-bbl-text">{breakLabel}</div>
+      <div className="text-bbl-text-muted text-lg">Preparados para Q{quarter}</div>
       <button
         onClick={onStartNext}
-        className="min-h-14 px-8 rounded-xl bg-orange-500 hover:bg-orange-400 active:bg-orange-600 font-bold text-xl transition-colors"
+        className="min-h-14 px-8 rounded-xl bg-bbl-accent hover:opacity-90 active:opacity-80 font-bold text-xl text-bbl-bg transition-opacity"
       >
-        Start Q{quarter}
+        Iniciar Q{quarter}
       </button>
     </div>
   )
@@ -153,15 +149,14 @@ export default function ScorekeeperPage() {
     finishMatch,
   } = useMatchStore()
 
-  const [homeName, setHomeName] = useState('Home')
-  const [awayName, setAwayName] = useState('Away')
+  const [homeName, setHomeName] = useState('Local')
+  const [awayName, setAwayName] = useState('Visitante')
   const [isOffline, setIsOffline] = useState(!navigator.onLine)
 
   useEffect(() => {
     if (matchId) loadMatch(matchId)
   }, [matchId, loadMatch])
 
-  // Connectivity indicator — sync on reconnect
   useEffect(() => {
     function handleOnline() {
       setIsOffline(false)
@@ -178,7 +173,6 @@ export default function ScorekeeperPage() {
     }
   }, [])
 
-  // Load team names from Supabase teams table if match is loaded
   useEffect(() => {
     if (!match) return
     import('../lib/supabase').then(({ supabase }) => {
@@ -198,24 +192,23 @@ export default function ScorekeeperPage() {
 
   if (!matchId) {
     return (
-      <div className="min-h-screen bg-gray-950 text-white flex items-center justify-center">
-        <p className="text-gray-400">No match ID provided.</p>
+      <div className="min-h-screen bg-bbl-bg text-bbl-text flex items-center justify-center">
+        <p className="text-bbl-text-muted">No se encontró el partido.</p>
       </div>
     )
   }
 
   if (!match) {
     return (
-      <div className="min-h-screen bg-gray-950 text-white flex items-center justify-center">
-        <p className="text-gray-400">Loading match…</p>
+      <div className="min-h-screen bg-bbl-bg text-bbl-text flex items-center justify-center">
+        <p className="text-bbl-text-muted">Cargando partido…</p>
       </div>
     )
   }
 
-  // Quarter break overlay
   if (match.status === 'quarter_break') {
     return (
-      <div className="min-h-screen bg-gray-950 text-white">
+      <div className="min-h-screen bg-bbl-bg text-bbl-text">
         <QuarterBreakOverlay
           quarter={match.quarter}
           onStartNext={() => {
@@ -226,90 +219,83 @@ export default function ScorekeeperPage() {
     )
   }
 
-  // Finished overlay
   if (match.status === 'finished') {
     return (
-      <div className="min-h-screen bg-gray-950 text-white flex flex-col items-center justify-center gap-4">
-        <div className="text-2xl font-bold">Match Finished</div>
-        <div className="text-4xl font-bold tabular-nums">
+      <div className="min-h-screen bg-bbl-bg text-bbl-text flex flex-col items-center justify-center gap-4">
+        <div className="text-2xl font-bold">Partido finalizado</div>
+        <div className="text-4xl font-bold tabular-nums text-bbl-score">
           {match.home_score} – {match.away_score}
         </div>
-        <div className="text-gray-400">
+        <div className="text-bbl-text-muted">
           {homeName} vs {awayName}
         </div>
       </div>
     )
   }
 
-  // Claim screen
   if (!claimed) {
     return (
-      <div className="min-h-screen bg-gray-950 text-white flex flex-col items-center justify-center gap-6 px-6">
+      <div className="min-h-screen bg-bbl-bg text-bbl-text flex flex-col items-center justify-center gap-6 px-6">
         <div className="text-center">
           <h1 className="text-2xl font-bold mb-2">
             {homeName} vs {awayName}
           </h1>
-          <p className="text-gray-400 text-sm">Q{match.quarter} · {match.status}</p>
+          <p className="text-bbl-text-muted text-sm">Q{match.quarter} · {match.status}</p>
         </div>
 
         {match.scorekeeper_claimed_by ? (
           <div className="text-center">
-            <p className="text-red-400 font-semibold">Scorekeeper already claimed</p>
-            <p className="text-gray-500 text-sm mt-1">Another device is controlling this match.</p>
+            <p className="text-bbl-clock font-semibold">Marcador ya reclamado</p>
+            <p className="text-bbl-text-muted text-sm mt-1">Otro dispositivo controla este partido.</p>
           </div>
         ) : (
           <button
             onClick={() => claimScorekeeper(match.id)}
-            className="min-h-14 px-10 rounded-xl bg-orange-500 hover:bg-orange-400 active:bg-orange-600 font-bold text-xl transition-colors"
+            className="min-h-14 px-10 rounded-xl bg-bbl-accent hover:opacity-90 active:opacity-80 font-bold text-xl text-bbl-bg transition-opacity"
           >
-            Claim scorekeeper
+            Reclamar marcador
           </button>
         )}
       </div>
     )
   }
 
-  // Can undo if there are events in current quarter
   const currentQuarterEvents = events.filter((e) => e.quarter === match.quarter)
   const canUndo = currentQuarterEvents.length > 0
 
   const quarterLabel = match.quarter <= 4 ? `Q${match.quarter}` : `OT${match.quarter - 4}`
 
   return (
-    <div className="min-h-screen bg-gray-950 text-white flex flex-col">
-      {/* Offline banner */}
+    <div className="min-h-screen bg-bbl-bg text-bbl-text flex flex-col">
       {isOffline && (
-        <div className="bg-amber-600 text-white text-sm font-semibold text-center px-4 py-2">
-          ⚠️ Sin conexión — los puntos se guardarán al reconectar
+        <div className="bg-bbl-warning/80 text-bbl-bg text-sm font-semibold text-center px-4 py-2">
+          Sin conexión — los puntos se guardarán al reconectar
         </div>
       )}
 
-      {/* Clock bar */}
-      <div className="flex items-center justify-between px-4 py-3 bg-gray-900 border-b border-gray-800">
-        <div className="text-sm font-semibold text-gray-400">{quarterLabel}</div>
-        <div className="text-3xl font-bold tabular-nums tracking-tight">
+      <div className="flex items-center justify-between px-4 py-3 bg-bbl-surface border-b border-bbl-border">
+        <div className="text-sm font-semibold text-bbl-text-muted">{quarterLabel}</div>
+        <div className="text-3xl font-bold tabular-nums tracking-tight text-bbl-text">
           {formatTime(timeRemaining)}
         </div>
         <button
           onClick={clockRunning ? pauseClock : startClock}
-          className={`min-h-10 px-5 rounded-xl font-bold text-sm transition-colors ${
+          className={`min-h-10 px-5 rounded-xl font-bold text-sm transition-opacity ${
             clockRunning
-              ? 'bg-gray-600 hover:bg-gray-500 active:bg-gray-700'
-              : 'bg-orange-500 hover:bg-orange-400 active:bg-orange-600'
+              ? 'bg-bbl-surface-light text-bbl-text hover:opacity-90'
+              : 'bg-bbl-accent text-bbl-bg hover:opacity-90'
           }`}
         >
-          {clockRunning ? 'Pause' : 'Start'}
+          {clockRunning ? 'Pausar' : 'Iniciar'}
         </button>
       </div>
 
-      {/* Score progress bar */}
-      <div className="flex items-center justify-center gap-6 px-4 py-2 bg-gray-900 border-b border-gray-800">
-        <span className="text-4xl font-bold tabular-nums">{match.home_score}</span>
-        <span className="text-gray-500 text-lg">–</span>
-        <span className="text-4xl font-bold tabular-nums">{match.away_score}</span>
+      <div className="flex items-center justify-center gap-6 px-4 py-2 bg-bbl-surface border-b border-bbl-border">
+        <span className="text-4xl font-bold tabular-nums text-bbl-text">{match.home_score}</span>
+        <span className="text-bbl-border text-lg">–</span>
+        <span className="text-4xl font-bold tabular-nums text-bbl-text">{match.away_score}</span>
       </div>
 
-      {/* Teams */}
       <div className="flex flex-1 gap-2 px-3 py-4">
         <TeamColumn
           name={homeName}
@@ -321,8 +307,7 @@ export default function ScorekeeperPage() {
           onTimeout={() => useTimeout('home')}
         />
 
-        {/* Divider */}
-        <div className="w-px bg-gray-800 self-stretch" />
+        <div className="w-px bg-bbl-border self-stretch" />
 
         <TeamColumn
           name={awayName}
@@ -335,26 +320,25 @@ export default function ScorekeeperPage() {
         />
       </div>
 
-      {/* Bottom bar */}
-      <div className="flex gap-2 px-3 pb-6 pt-2 border-t border-gray-800 bg-gray-900">
+      <div className="flex gap-2 px-3 pb-6 pt-2 border-t border-bbl-border bg-bbl-surface">
         <button
           onClick={undoLastEvent}
           disabled={!canUndo}
-          className="flex-1 min-h-12 rounded-xl bg-gray-700 hover:bg-gray-600 active:bg-gray-800 disabled:opacity-40 disabled:cursor-not-allowed font-semibold text-sm transition-colors"
+          className="flex-1 min-h-12 rounded-xl bg-bbl-surface-light hover:opacity-90 active:opacity-80 disabled:opacity-40 disabled:cursor-not-allowed font-semibold text-sm text-bbl-text transition-opacity"
         >
-          Undo
+          Deshacer
         </button>
         <button
           onClick={endQuarter}
-          className="flex-1 min-h-12 rounded-xl bg-gray-600 hover:bg-gray-500 active:bg-gray-700 font-semibold text-sm transition-colors"
+          className="flex-1 min-h-12 rounded-xl bg-bbl-surface-light hover:opacity-90 active:opacity-80 font-semibold text-sm text-bbl-text transition-opacity"
         >
-          End Q{match.quarter}
+          Fin Q{match.quarter}
         </button>
         <button
           onClick={finishMatch}
-          className="flex-1 min-h-12 rounded-xl bg-red-800 hover:bg-red-700 active:bg-red-900 font-semibold text-sm transition-colors"
+          className="flex-1 min-h-12 rounded-xl bg-bbl-clock hover:opacity-90 active:opacity-80 font-semibold text-sm text-white transition-opacity"
         >
-          Finish
+          Finalizar
         </button>
       </div>
     </div>

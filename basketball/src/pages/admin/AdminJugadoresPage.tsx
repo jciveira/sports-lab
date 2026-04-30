@@ -1,0 +1,8 @@
+export function AdminJugadoresPage() {
+  return (
+    <div className="max-w-lg mx-auto px-4 py-6">
+      <h1 className="text-xl font-bold text-bbl-text">Jugadores</h1>
+      <p className="text-sm text-bbl-text-muted mt-4">Gestión de jugadores — próximamente.</p>
+    </div>
+  )
+}
