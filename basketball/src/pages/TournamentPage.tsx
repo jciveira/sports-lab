@@ -6,6 +6,7 @@ import type { StandingRow } from '../stores/useTournamentStore'
 import { useTeamsStore } from '../stores/useTeamsStore'
 import { BackButton } from '../components/BackButton'
 import { CollapsibleSection } from '../components/CollapsibleSection'
+import { formatMatchDate } from '../lib/matches'
 import type { Match, Tournament } from '../types'
 
 function StandingsTable({ rows }: { rows: StandingRow[] }) {
@@ -62,6 +63,8 @@ export function TournamentPage() {
   const currentTournament = useTournamentStore((s) => s.currentTournament)
   const tournamentTeams = useTournamentStore((s) => s.tournamentTeams)
   const tournamentMatches = useTournamentStore((s) => s.tournamentMatches)
+  const venues = useTournamentStore((s) => s.venues)
+  const fetchVenues = useTournamentStore((s) => s.fetchVenues)
   const loading = useTournamentStore((s) => s.loading)
   const error = useTournamentStore((s) => s.error)
 
@@ -74,7 +77,8 @@ export function TournamentPage() {
     if (!id) return
     void loadTournament(id)
     void fetchTeams()
-  }, [id, loadTournament, fetchTeams])
+    void fetchVenues(id)
+  }, [id, loadTournament, fetchTeams, fetchVenues])
 
   useEffect(() => {
     if (!isSupabaseConfigured) return
@@ -207,6 +211,10 @@ export function TournamentPage() {
                             ? `${liveMatch.home_score} – ${liveMatch.away_score}`
                             : 'vs'
                         const isFinished = liveMatch?.status === 'finished'
+                        const venueName = liveMatch?.venue_id
+                          ? venues.find((v) => v.id === liveMatch.venue_id)?.name
+                          : undefined
+                        const formattedDate = liveMatch ? formatMatchDate(liveMatch.scheduled_at) : null
                         return (
                           <li
                             key={tm.id}
@@ -222,6 +230,11 @@ export function TournamentPage() {
                               </p>
                               {isFinished && (
                                 <p className="text-xs text-bbl-text-muted mt-0.5">Final</p>
+                              )}
+                              {(formattedDate || venueName) && (
+                                <p className="text-xs text-bbl-accent mt-0.5">
+                                  {[formattedDate, venueName].filter(Boolean).join(' · ')}
+                                </p>
                               )}
                             </div>
                             {tm.match_id && (
