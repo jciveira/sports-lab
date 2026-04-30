@@ -4,6 +4,7 @@ import { useTeamsStore } from '../stores/useTeamsStore'
 import { useMatchesStore, type MatchWithDuration } from '../stores/useMatchesStore'
 import { usePlayersStore } from '../stores/usePlayersStore'
 import { useTournamentStore } from '../stores/useTournamentStore'
+import { CollapsibleSection } from '../components/CollapsibleSection'
 import type { Team, Match, Tournament, PlayerPosition, PlayerAttributes } from '../types'
 
 const POSITION_LABELS: Record<PlayerPosition, string> = {
@@ -141,8 +142,7 @@ function RosterSection({ teams }: { teams: Team[] }) {
   }
 
   return (
-    <section className="flex flex-col gap-4">
-      <h2 className="text-lg font-bold text-bbl-accent uppercase tracking-widest">Plantilla</h2>
+    <CollapsibleSection title="Plantilla">
 
       <div className="flex flex-col gap-1">
         <label className="text-xs text-bbl-text-muted uppercase tracking-widest">Seleccionar equipo</label>
@@ -275,7 +275,7 @@ function RosterSection({ teams }: { teams: Team[] }) {
           )}
         </>
       )}
-    </section>
+    </CollapsibleSection>
   )
 }
 
@@ -307,8 +307,7 @@ function TeamsSection({ teams, loading }: { teams: Team[]; loading: boolean }) {
   }
 
   return (
-    <section className="flex flex-col gap-4">
-      <h2 className="text-lg font-bold text-bbl-accent uppercase tracking-widest">Equipos</h2>
+    <CollapsibleSection title="Equipos">
 
       <form onSubmit={handleCreate} className="flex flex-col gap-3 p-4 rounded-2xl bg-bbl-surface border border-bbl-border">
         <p className="text-xs uppercase tracking-widest text-bbl-text-muted">Nuevo equipo</p>
@@ -363,7 +362,7 @@ function TeamsSection({ teams, loading }: { teams: Team[]; loading: boolean }) {
           ))}
         </ul>
       )}
-    </section>
+    </CollapsibleSection>
   )
 }
 
@@ -401,8 +400,7 @@ function MatchesSection({ matches, teams, loading }: { matches: MatchWithDuratio
   const viewerBase = `${window.location.origin}/match`
 
   return (
-    <section className="flex flex-col gap-4">
-      <h2 className="text-lg font-bold text-bbl-accent uppercase tracking-widest">Partidos</h2>
+    <CollapsibleSection title="Partidos">
 
       <form onSubmit={handleCreate} className="flex flex-col gap-3 p-4 rounded-2xl bg-bbl-surface border border-bbl-border">
         <p className="text-xs uppercase tracking-widest text-bbl-text-muted">Nuevo partido</p>
@@ -491,7 +489,7 @@ function MatchesSection({ matches, teams, loading }: { matches: MatchWithDuratio
           })}
         </ul>
       )}
-    </section>
+    </CollapsibleSection>
   )
 }
 
@@ -589,8 +587,7 @@ function TournamentSection({ teams }: { teams: Team[] }) {
   void tournamentMatches // used indirectly via canKnockout logic
 
   return (
-    <section className="flex flex-col gap-4">
-      <h2 className="text-lg font-bold text-bbl-accent uppercase tracking-widest">Torneos</h2>
+    <CollapsibleSection title="Torneos">
 
       <form onSubmit={handleCreate} className="flex flex-col gap-3 p-4 rounded-2xl bg-bbl-surface border border-bbl-border">
         <p className="text-xs uppercase tracking-widest text-bbl-text-muted">Nuevo torneo</p>
@@ -758,7 +755,7 @@ function TournamentSection({ teams }: { teams: Team[] }) {
           })}
         </ul>
       )}
-    </section>
+    </CollapsibleSection>
   )
 }
 

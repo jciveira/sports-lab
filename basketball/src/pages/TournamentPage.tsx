@@ -5,6 +5,7 @@ import { useTournamentStore, computeStandingsByGroup } from '../stores/useTourna
 import type { StandingRow } from '../stores/useTournamentStore'
 import { useTeamsStore } from '../stores/useTeamsStore'
 import { BackButton } from '../components/BackButton'
+import { CollapsibleSection } from '../components/CollapsibleSection'
 import type { Match, Tournament } from '../types'
 
 function StandingsTable({ rows }: { rows: StandingRow[] }) {
@@ -141,7 +142,7 @@ export function TournamentPage() {
   return (
     <div className="relative min-h-screen bg-bbl-bg text-bbl-text">
       <BackButton to="/torneos" />
-      <div className="max-w-2xl mx-auto px-4 py-8 flex flex-col gap-8">
+      <div className="max-w-2xl mx-auto px-4 py-8 flex flex-col gap-6">
         <div className="flex flex-col gap-1 pt-6">
           <div className="flex items-center gap-3">
             <h1 className="text-2xl font-bold text-bbl-accent">{currentTournament.name}</h1>
@@ -178,61 +179,67 @@ export function TournamentPage() {
             : []
 
           return (
-            <section key={groupName ?? '__all__'} className="flex flex-col gap-3">
-              <h2 className="text-lg font-bold text-bbl-accent uppercase tracking-widest">{label}</h2>
+            <div key={groupName ?? '__all__'} className="flex flex-col gap-3">
+              <CollapsibleSection title={label} titleClassName="text-lg font-bold text-bbl-accent uppercase tracking-widest">
+                {rows.length === 0 ? (
+                  <p className="text-sm text-bbl-text-muted text-center py-4">Sin resultados todavía.</p>
+                ) : (
+                  <StandingsTable rows={rows} />
+                )}
+              </CollapsibleSection>
 
-              {rows.length === 0 ? (
-                <p className="text-sm text-bbl-text-muted text-center py-4">Sin resultados todavía.</p>
-              ) : (
-                <StandingsTable rows={rows} />
-              )}
-
-              {showSchedule && groupTournamentMatches.length > 0 && (
-                <ul className="flex flex-col gap-2 mt-1">
-                  {groupTournamentMatches.map((tm) => {
-                    const homeTeam = teams.find((t) => t.id === tm.home_team_id)
-                    const awayTeam = teams.find((t) => t.id === tm.away_team_id)
-                    const liveMatch = groupMatches.find((m) => m.id === tm.match_id)
-                    const score =
-                      liveMatch && liveMatch.status !== 'scheduled'
-                        ? `${liveMatch.home_score} – ${liveMatch.away_score}`
-                        : 'vs'
-                    const isFinished = liveMatch?.status === 'finished'
-                    return (
-                      <li
-                        key={tm.id}
-                        className="flex items-center justify-between gap-3 p-3 rounded-xl bg-bbl-surface border border-bbl-border"
-                      >
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-semibold truncate text-bbl-text">
-                            {homeTeam?.name ?? 'TBD'}{' '}
-                            <span className={isFinished ? 'text-bbl-accent' : 'text-bbl-text-muted'}>
-                              {score}
-                            </span>{' '}
-                            {awayTeam?.name ?? 'TBD'}
-                          </p>
-                          {isFinished && (
-                            <p className="text-xs text-bbl-text-muted mt-0.5">Final</p>
-                          )}
-                        </div>
-                        {tm.match_id && (
-                          <Link
-                            to={`/match/${tm.match_id}/view`}
-                            className="px-3 py-1.5 rounded-lg bg-bbl-surface-light border border-bbl-border text-xs text-bbl-text hover:border-bbl-accent hover:text-bbl-accent transition-colors whitespace-nowrap"
+              {showSchedule && (
+                <CollapsibleSection
+                  title="Calendario"
+                  defaultOpen={false}
+                  titleClassName="text-sm font-semibold text-bbl-text-muted"
+                >
+                  {groupTournamentMatches.length === 0 ? (
+                    <p className="text-sm text-bbl-text-muted text-center py-2">Calendario no generado aún.</p>
+                  ) : (
+                    <ul className="flex flex-col gap-2">
+                      {groupTournamentMatches.map((tm) => {
+                        const homeTeam = teams.find((t) => t.id === tm.home_team_id)
+                        const awayTeam = teams.find((t) => t.id === tm.away_team_id)
+                        const liveMatch = groupMatches.find((m) => m.id === tm.match_id)
+                        const score =
+                          liveMatch && liveMatch.status !== 'scheduled'
+                            ? `${liveMatch.home_score} – ${liveMatch.away_score}`
+                            : 'vs'
+                        const isFinished = liveMatch?.status === 'finished'
+                        return (
+                          <li
+                            key={tm.id}
+                            className="flex items-center justify-between gap-3 p-3 rounded-xl bg-bbl-surface border border-bbl-border"
                           >
-                            {liveMatch?.status === 'running' ? 'En vivo →' : 'Ver →'}
-                          </Link>
-                        )}
-                      </li>
-                    )
-                  })}
-                </ul>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-semibold truncate text-bbl-text">
+                                {homeTeam?.name ?? 'TBD'}{' '}
+                                <span className={isFinished ? 'text-bbl-accent' : 'text-bbl-text-muted'}>
+                                  {score}
+                                </span>{' '}
+                                {awayTeam?.name ?? 'TBD'}
+                              </p>
+                              {isFinished && (
+                                <p className="text-xs text-bbl-text-muted mt-0.5">Final</p>
+                              )}
+                            </div>
+                            {tm.match_id && (
+                              <Link
+                                to={`/match/${tm.match_id}/view`}
+                                className="px-3 py-1.5 rounded-lg bg-bbl-surface-light border border-bbl-border text-xs text-bbl-text hover:border-bbl-accent hover:text-bbl-accent transition-colors whitespace-nowrap"
+                              >
+                                {liveMatch?.status === 'running' ? 'En vivo →' : 'Ver →'}
+                              </Link>
+                            )}
+                          </li>
+                        )
+                      })}
+                    </ul>
+                  )}
+                </CollapsibleSection>
               )}
-
-              {showSchedule && groupTournamentMatches.length === 0 && (
-                <p className="text-sm text-bbl-text-muted text-center py-2">Calendario no generado aún.</p>
-              )}
-            </section>
+            </div>
           )
         })}
       </div>
