@@ -157,6 +157,9 @@ function makeMatch(overrides: Partial<Match> = {}): Match {
     started_at: null,
     finished_at: null,
     created_at: new Date().toISOString(),
+    venue_id: null,
+    scheduled_at: null,
+    not_played: false,
     ...overrides,
   }
 }
@@ -362,6 +365,22 @@ describe('computeStandings', () => {
     ]
     const matches: Match[] = [
       makeMatch({ id: 'm1', home_team_id: 't1', away_team_id: 't2', home_score: 50, away_score: 40, status: 'running' }),
+    ]
+
+    const standings = computeStandings(teams, matches, tournamentTeams)
+
+    expect(standings[0].played).toBe(0)
+    expect(standings[1].played).toBe(0)
+  })
+
+  it('ignores not_played matches even when status is finished', () => {
+    const teams = [makeTeam('t1', 'Bulls'), makeTeam('t2', 'Lakers')]
+    const tournamentTeams = [
+      makeTournamentTeam({ id: 'tt-1', team_id: 't1' }),
+      makeTournamentTeam({ id: 'tt-2', team_id: 't2' }),
+    ]
+    const matches: Match[] = [
+      makeMatch({ id: 'm1', home_team_id: 't1', away_team_id: 't2', home_score: 0, away_score: 0, status: 'finished', not_played: true }),
     ]
 
     const standings = computeStandings(teams, matches, tournamentTeams)

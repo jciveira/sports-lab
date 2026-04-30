@@ -34,6 +34,7 @@ export function computeStandings(
 
   for (const match of matches) {
     if (match.status !== 'finished') continue
+    if (match.not_played) continue
     const home = rowMap.get(match.home_team_id)
     const away = rowMap.get(match.away_team_id)
     if (!home || !away) continue
@@ -176,6 +177,8 @@ interface TournamentState {
   fetchVenues: (tournamentId: string) => Promise<void>
   addVenue: (tournamentId: string, name: string, address?: string) => Promise<Venue | null>
   removeVenue: (venueId: string) => Promise<void>
+  deleteTournament: (tournamentId: string) => Promise<boolean>
+  updateTournamentStatus: (tournamentId: string, status: Tournament['status']) => Promise<boolean>
 }
 
 export const useTournamentStore = create<TournamentState>((set, get) => ({
@@ -528,6 +531,40 @@ export const useTournamentStore = create<TournamentState>((set, get) => ({
       set({ venues: get().venues.filter((v) => v.id !== venueId) })
     } catch (err) {
       set({ error: err instanceof Error ? err.message : 'Failed to remove venue' })
+    }
+  },
+
+  async deleteTournament(tournamentId) {
+    if (!isSupabaseConfigured) return false
+    try {
+      const { error } = await db.from('tournaments').delete().eq('id', tournamentId)
+      if (error) throw new Error(error.message as string)
+      set({
+        tournaments: get().tournaments.filter((t) => t.id !== tournamentId),
+        currentTournament: get().currentTournament?.id === tournamentId ? null : get().currentTournament,
+      })
+      return true
+    } catch (err) {
+      set({ error: err instanceof Error ? err.message : 'Failed to delete tournament' })
+      return false
+    }
+  },
+
+  async updateTournamentStatus(tournamentId, status) {
+    if (!isSupabaseConfigured) return false
+    try {
+      const { error } = await db.from('tournaments').update({ status }).eq('id', tournamentId)
+      if (error) throw new Error(error.message as string)
+      set({
+        tournaments: get().tournaments.map((t) => t.id === tournamentId ? { ...t, status } : t),
+        currentTournament: get().currentTournament?.id === tournamentId
+          ? { ...get().currentTournament!, status }
+          : get().currentTournament,
+      })
+      return true
+    } catch (err) {
+      set({ error: err instanceof Error ? err.message : 'Failed to update tournament status' })
+      return false
     }
   },
 }))

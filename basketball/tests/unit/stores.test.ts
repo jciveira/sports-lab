@@ -11,6 +11,8 @@ const mockUpdateMatch = vi.fn()
 const mockInsertVenue = vi.fn()
 const mockSelectVenues = vi.fn()
 const mockDeleteVenue = vi.fn()
+const mockDeleteTournament = vi.fn()
+const mockUpdateTournament = vi.fn()
 
 vi.mock('../../src/lib/supabase', () => {
   return {
@@ -28,6 +30,12 @@ vi.mock('../../src/lib/supabase', () => {
             select: () => ({ order: () => mockSelectVenues(table) }),
             insert: (payload: unknown) => ({ select: () => ({ single: () => mockInsertVenue(table, payload) }) }),
             delete: () => ({ eq: () => mockDeleteVenue(table) }),
+          }
+        }
+        if (table === 'tournaments') {
+          return {
+            delete: () => ({ eq: () => mockDeleteTournament(table) }),
+            update: (patch: unknown) => ({ eq: () => mockUpdateTournament(table, patch) }),
           }
         }
         // matches
@@ -322,5 +330,69 @@ describe('useTournamentStore — venues', () => {
 
     expect(result).toBeNull()
     expect(useTournamentStore.getState().error).toBe('venue error')
+  })
+})
+
+// ─── Tournament lifecycle actions ─────────────────────────────────────────────
+
+import type { Tournament } from '../../src/types'
+
+function makeTournament(overrides: Partial<Tournament> = {}): Tournament {
+  return { id: 'tourn-1', name: 'Spring Cup', format: 'group_knockout', num_teams: 4, status: 'setup', viewer_code: null, created_at: new Date().toISOString(), ...overrides }
+}
+
+describe('useTournamentStore — deleteTournament', () => {
+  it('removes tournament from store on success', async () => {
+    useTournamentStore.setState({ tournaments: [makeTournament({ id: 't-del' })], currentTournament: null })
+    mockDeleteTournament.mockResolvedValue({ error: null })
+
+    const ok = await useTournamentStore.getState().deleteTournament('t-del')
+
+    expect(ok).toBe(true)
+    expect(useTournamentStore.getState().tournaments).toHaveLength(0)
+  })
+
+  it('clears currentTournament if deleted tournament is current', async () => {
+    const t = makeTournament({ id: 't-del' })
+    useTournamentStore.setState({ tournaments: [t], currentTournament: t })
+    mockDeleteTournament.mockResolvedValue({ error: null })
+
+    await useTournamentStore.getState().deleteTournament('t-del')
+
+    expect(useTournamentStore.getState().currentTournament).toBeNull()
+  })
+
+  it('returns false and sets error on Supabase error', async () => {
+    useTournamentStore.setState({ tournaments: [makeTournament({ id: 't-1' })] })
+    mockDeleteTournament.mockResolvedValue({ error: { message: 'delete failed' } })
+
+    const ok = await useTournamentStore.getState().deleteTournament('t-1')
+
+    expect(ok).toBe(false)
+    expect(useTournamentStore.getState().error).toBe('delete failed')
+  })
+})
+
+describe('useTournamentStore — updateTournamentStatus', () => {
+  it('updates status in tournaments list and currentTournament', async () => {
+    const t = makeTournament({ id: 't-1', status: 'knockout' })
+    useTournamentStore.setState({ tournaments: [t], currentTournament: t })
+    mockUpdateTournament.mockResolvedValue({ error: null })
+
+    const ok = await useTournamentStore.getState().updateTournamentStatus('t-1', 'finished')
+
+    expect(ok).toBe(true)
+    expect(useTournamentStore.getState().tournaments[0].status).toBe('finished')
+    expect(useTournamentStore.getState().currentTournament?.status).toBe('finished')
+  })
+
+  it('returns false and sets error on Supabase error', async () => {
+    useTournamentStore.setState({ tournaments: [makeTournament({ id: 't-1' })] })
+    mockUpdateTournament.mockResolvedValue({ error: { message: 'update failed' } })
+
+    const ok = await useTournamentStore.getState().updateTournamentStatus('t-1', 'finished')
+
+    expect(ok).toBe(false)
+    expect(useTournamentStore.getState().error).toBe('update failed')
   })
 })
