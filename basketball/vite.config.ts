@@ -10,7 +10,7 @@ export default defineConfig({
     tailwindcss(),
     VitePWA({
       registerType: 'prompt',
-      includeAssets: ['favicon.svg', 'icons/*.png', 'fonts/*.woff2'],
+      includeAssets: ['favicon.svg', 'apple-touch-icon.png', 'icons/*.png', 'fonts/*.woff2'],
       manifest: {
         name: 'BasketballLab',
         short_name: 'BasketLab',
