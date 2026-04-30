@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
+import { MapPin } from 'lucide-react'
 import { supabase, isSupabaseConfigured } from '../lib/supabase'
 import { useTournamentStore, computeStandingsByGroup } from '../stores/useTournamentStore'
 import type { StandingRow } from '../stores/useTournamentStore'
@@ -7,7 +8,31 @@ import { useTeamsStore } from '../stores/useTeamsStore'
 import { BackButton } from '../components/BackButton'
 import { CollapsibleSection } from '../components/CollapsibleSection'
 import { formatMatchDate } from '../lib/matches'
-import type { Match, Tournament } from '../types'
+import type { Match, Tournament, Venue } from '../types'
+
+function VenueChip({ venue }: { venue: Venue }) {
+  if (venue.address) {
+    const href = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(venue.address)}`
+    return (
+      <a
+        href={href}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="flex items-center gap-1 text-[10px] text-bbl-accent hover:underline"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <MapPin className="w-3 h-3 shrink-0" />
+        <span className="truncate max-w-[120px]">{venue.name}</span>
+      </a>
+    )
+  }
+  return (
+    <span className="flex items-center gap-1 text-[10px] text-bbl-text-muted">
+      <MapPin className="w-3 h-3 shrink-0" />
+      <span className="truncate max-w-[120px]">{venue.name}</span>
+    </span>
+  )
+}
 
 function StandingsTable({ rows }: { rows: StandingRow[] }) {
   return (
@@ -207,40 +232,49 @@ export function TournamentPage() {
                         const awayTeam = teams.find((t) => t.id === tm.away_team_id)
                         const liveMatch = groupMatches.find((m) => m.id === tm.match_id)
                         const score =
-                          liveMatch && liveMatch.status !== 'scheduled'
+                          liveMatch && liveMatch.status !== 'scheduled' && !liveMatch.not_played
                             ? `${liveMatch.home_score} – ${liveMatch.away_score}`
                             : 'vs'
                         const isFinished = liveMatch?.status === 'finished'
-                        const venueName = liveMatch?.venue_id
-                          ? venues.find((v) => v.id === liveMatch.venue_id)?.name
+                        const isNotPlayed = liveMatch?.not_played ?? false
+                        const venue = liveMatch?.venue_id
+                          ? venues.find((v) => v.id === liveMatch.venue_id)
                           : undefined
                         const formattedDate = liveMatch ? formatMatchDate(liveMatch.scheduled_at) : null
                         return (
                           <li
                             key={tm.id}
-                            className="flex items-center justify-between gap-3 p-3 rounded-xl bg-bbl-surface border border-bbl-border"
+                            className={`flex items-center justify-between gap-3 p-3 rounded-xl bg-bbl-surface border border-bbl-border ${isNotPlayed ? 'opacity-50' : ''}`}
                           >
-                            <div className="flex-1 min-w-0">
-                              <p className="text-sm font-semibold truncate text-bbl-text">
-                                {homeTeam?.name ?? 'TBD'}{' '}
-                                <span className={isFinished ? 'text-bbl-accent' : 'text-bbl-text-muted'}>
+                            <div className="flex-1 min-w-0 flex flex-col gap-1">
+                              <div className={`flex items-center gap-2 text-sm font-semibold text-bbl-text ${isNotPlayed ? 'line-through' : ''}`}>
+                                <div className="flex items-center gap-1 flex-1 min-w-0">
+                                  {homeTeam?.badge_url && (
+                                    <img src={homeTeam.badge_url} alt="" className="w-4 h-4 object-contain rounded-sm shrink-0" />
+                                  )}
+                                  <span className="truncate">{homeTeam?.name ?? 'TBD'}</span>
+                                </div>
+                                <span className={`shrink-0 ${isFinished && !isNotPlayed ? 'text-bbl-accent' : 'text-bbl-text-muted'}`}>
                                   {score}
-                                </span>{' '}
-                                {awayTeam?.name ?? 'TBD'}
-                              </p>
-                              {isFinished && (
-                                <p className="text-xs text-bbl-text-muted mt-0.5">Final</p>
+                                </span>
+                                <div className="flex items-center gap-1 flex-1 min-w-0 justify-end">
+                                  <span className="truncate text-right">{awayTeam?.name ?? 'TBD'}</span>
+                                  {awayTeam?.badge_url && (
+                                    <img src={awayTeam.badge_url} alt="" className="w-4 h-4 object-contain rounded-sm shrink-0" />
+                                  )}
+                                </div>
+                              </div>
+                              {formattedDate && (
+                                <p className="text-[10px] text-bbl-accent">{formattedDate}</p>
                               )}
-                              {(formattedDate || venueName) && (
-                                <p className="text-xs text-bbl-accent mt-0.5">
-                                  {[formattedDate, venueName].filter(Boolean).join(' · ')}
-                                </p>
+                              {venue && !isNotPlayed && (
+                                <VenueChip venue={venue} />
                               )}
                             </div>
                             {tm.match_id && (
                               <Link
                                 to={`/match/${tm.match_id}/view`}
-                                className="px-3 py-1.5 rounded-lg bg-bbl-surface-light border border-bbl-border text-xs text-bbl-text hover:border-bbl-accent hover:text-bbl-accent transition-colors whitespace-nowrap"
+                                className="px-3 py-1.5 rounded-lg bg-bbl-surface-light border border-bbl-border text-xs text-bbl-text hover:border-bbl-accent hover:text-bbl-accent transition-colors whitespace-nowrap shrink-0"
                               >
                                 {liveMatch?.status === 'running' ? 'En vivo →' : 'Ver →'}
                               </Link>
