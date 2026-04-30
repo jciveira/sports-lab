@@ -28,6 +28,11 @@ alter table matches
   add column if not exists starts_at timestamptz,
   add column if not exists time_remaining_seconds int;
 
+-- Fix matches.phase constraint (001 used 'semi', types use 'sf', add 'qf')
+alter table matches drop constraint if exists matches_phase_check;
+alter table matches add constraint matches_phase_check
+  check (phase in ('group','qf','sf','final'));
+
 -- tournament_teams
 create table if not exists tournament_teams (
   id uuid primary key default uuid_generate_v4(),

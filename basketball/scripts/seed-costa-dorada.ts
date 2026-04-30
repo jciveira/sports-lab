@@ -135,7 +135,6 @@ async function seed06AMP2() {
       format: 'group_knockout',
       num_teams: 8,
       status: 'setup',
-      viewer_code: null,
     })
     .select('id')
     .single()
@@ -226,7 +225,6 @@ async function seed07AMB() {
       format: 'group_knockout',
       num_teams: 12,
       status: 'setup',
-      viewer_code: null,
     })
     .select('id')
     .single()
