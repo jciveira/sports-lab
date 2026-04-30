@@ -7,47 +7,34 @@ const mockInsertTeam = vi.fn()
 const mockInsertMatch = vi.fn()
 const mockSelectTeams = vi.fn()
 const mockSelectMatches = vi.fn()
+const mockUpdateMatch = vi.fn()
+const mockInsertVenue = vi.fn()
+const mockSelectVenues = vi.fn()
+const mockDeleteVenue = vi.fn()
 
 vi.mock('../../src/lib/supabase', () => {
-  const makeChain = (mockFn: ReturnType<typeof vi.fn>) => ({
-    from: (table: string) => ({
-      select: () => ({
-        order: () => mockFn(table),
-      }),
-      insert: (payload: unknown) => ({
-        select: () => ({
-          single: () => mockFn(table, payload),
-        }),
-      }),
-    }),
-  })
-
   return {
     isSupabaseConfigured: true,
     supabase: {
       from: (table: string) => {
         if (table === 'teams') {
           return {
-            select: () => ({
-              order: () => mockSelectTeams(table),
-            }),
-            insert: (payload: unknown) => ({
-              select: () => ({
-                single: () => mockInsertTeam(table, payload),
-              }),
-            }),
+            select: () => ({ order: () => mockSelectTeams(table) }),
+            insert: (payload: unknown) => ({ select: () => ({ single: () => mockInsertTeam(table, payload) }) }),
+          }
+        }
+        if (table === 'venues') {
+          return {
+            select: () => ({ order: () => mockSelectVenues(table) }),
+            insert: (payload: unknown) => ({ select: () => ({ single: () => mockInsertVenue(table, payload) }) }),
+            delete: () => ({ eq: () => mockDeleteVenue(table) }),
           }
         }
         // matches
         return {
-          select: () => ({
-            order: () => mockSelectMatches(table),
-          }),
-          insert: (payload: unknown) => ({
-            select: () => ({
-              single: () => mockInsertMatch(table, payload),
-            }),
-          }),
+          select: () => ({ order: () => mockSelectMatches(table) }),
+          insert: (payload: unknown) => ({ select: () => ({ single: () => mockInsertMatch(table, payload) }) }),
+          update: (patch: unknown) => ({ eq: () => mockUpdateMatch(table, patch) }),
         }
       },
     },
@@ -57,7 +44,8 @@ vi.mock('../../src/lib/supabase', () => {
 // Import stores AFTER mocks are set up
 import { useTeamsStore } from '../../src/stores/useTeamsStore'
 import { useMatchesStore } from '../../src/stores/useMatchesStore'
-import type { Team, Match } from '../../src/types'
+import { useTournamentStore } from '../../src/stores/useTournamentStore'
+import type { Team, Match, Venue } from '../../src/types'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -88,15 +76,30 @@ function makeMatch(overrides: Partial<Match> = {}): Match {
     started_at: null,
     finished_at: null,
     created_at: new Date().toISOString(),
+    venue_id: null,
+    scheduled_at: null,
+    not_played: false,
     ...overrides,
   }
 }
 
 // ─── Reset store state between tests ─────────────────────────────────────────
 
+function makeVenue(overrides: Partial<Venue> = {}): Venue {
+  return {
+    id: 'venue-1',
+    tournament_id: 'tournament-1',
+    name: 'Pabellón Central',
+    address: null,
+    created_at: new Date().toISOString(),
+    ...overrides,
+  }
+}
+
 beforeEach(() => {
   useTeamsStore.setState({ teams: [], loading: false, error: null })
   useMatchesStore.setState({ matches: [], loading: false, error: null })
+  useTournamentStore.setState({ tournaments: [], currentTournament: null, tournamentTeams: [], tournamentMatches: [], venues: [], loading: false, error: null })
   vi.clearAllMocks()
 })
 
@@ -243,5 +246,81 @@ describe('useMatchesStore', () => {
     await useMatchesStore.getState().fetchMatches()
 
     expect(useMatchesStore.getState().matches).toHaveLength(0)
+  })
+
+  it('updateMatch patches the match in local state', async () => {
+    const existing = makeMatch({ id: 'match-upd', home_score: 0, away_score: 0 })
+    useMatchesStore.setState({ matches: [{ ...existing, quarter_duration: 8 }] })
+    mockUpdateMatch.mockResolvedValue({ error: null })
+
+    const ok = await useMatchesStore.getState().updateMatch('match-upd', { home_score: 5, away_score: 3 })
+
+    expect(ok).toBe(true)
+    expect(useMatchesStore.getState().matches[0].home_score).toBe(5)
+    expect(useMatchesStore.getState().matches[0].away_score).toBe(3)
+  })
+
+  it('updateMatch sets not_played flag', async () => {
+    const existing = makeMatch({ id: 'match-np', not_played: false })
+    useMatchesStore.setState({ matches: [{ ...existing, quarter_duration: 8 }] })
+    mockUpdateMatch.mockResolvedValue({ error: null })
+
+    await useMatchesStore.getState().updateMatch('match-np', { not_played: true })
+
+    expect(useMatchesStore.getState().matches[0].not_played).toBe(true)
+  })
+
+  it('updateMatch sets error and returns false on Supabase error', async () => {
+    const existing = makeMatch({ id: 'match-err' })
+    useMatchesStore.setState({ matches: [{ ...existing, quarter_duration: 8 }] })
+    mockUpdateMatch.mockResolvedValue({ error: { message: 'update failed' } })
+
+    const ok = await useMatchesStore.getState().updateMatch('match-err', { home_score: 10 })
+
+    expect(ok).toBe(false)
+    expect(useMatchesStore.getState().error).toBe('update failed')
+  })
+})
+
+// ─── Venue actions ────────────────────────────────────────────────────────────
+
+describe('useTournamentStore — venues', () => {
+  it('addVenue inserts and appends to store', async () => {
+    const venue = makeVenue({ id: 'v-1', name: 'Pabellón Ponent' })
+    mockInsertVenue.mockResolvedValue({ data: venue, error: null })
+
+    const result = await useTournamentStore.getState().addVenue('tournament-1', 'Pabellón Ponent')
+
+    expect(result).not.toBeNull()
+    expect(result?.name).toBe('Pabellón Ponent')
+    expect(useTournamentStore.getState().venues).toHaveLength(1)
+  })
+
+  it('addVenue with address passes it to Supabase', async () => {
+    const venue = makeVenue({ address: 'Calle Mayor 1' })
+    mockInsertVenue.mockResolvedValue({ data: venue, error: null })
+
+    await useTournamentStore.getState().addVenue('tournament-1', 'Pabellón', 'Calle Mayor 1')
+
+    const payload = mockInsertVenue.mock.calls[0][1] as { address: string }
+    expect(payload.address).toBe('Calle Mayor 1')
+  })
+
+  it('removeVenue removes from store state', async () => {
+    useTournamentStore.setState({ venues: [makeVenue({ id: 'v-del' })] })
+    mockDeleteVenue.mockResolvedValue({ error: null })
+
+    await useTournamentStore.getState().removeVenue('v-del')
+
+    expect(useTournamentStore.getState().venues).toHaveLength(0)
+  })
+
+  it('addVenue sets error and returns null on Supabase error', async () => {
+    mockInsertVenue.mockResolvedValue({ data: null, error: { message: 'venue error' } })
+
+    const result = await useTournamentStore.getState().addVenue('t-1', 'Bad')
+
+    expect(result).toBeNull()
+    expect(useTournamentStore.getState().error).toBe('venue error')
   })
 })

@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { supabase, isSupabaseConfigured } from '../lib/supabase'
-import type { Tournament, TournamentTeam, TournamentMatch, Team, Match } from '../types'
+import type { Tournament, TournamentTeam, TournamentMatch, Team, Match, Venue } from '../types'
 
 // Use untyped client access to avoid strict Database generic issues at insert time
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -132,6 +132,7 @@ interface TournamentState {
   currentTournament: Tournament | null
   tournamentTeams: TournamentTeam[]
   tournamentMatches: TournamentMatch[]
+  venues: Venue[]
   loading: boolean
   error: string | null
 
@@ -142,6 +143,9 @@ interface TournamentState {
   generateGroupSchedule: (tournamentId: string) => Promise<boolean>
   generateKnockoutDraw: (tournamentId: string) => Promise<boolean>
   advanceWinner: (tournamentMatchId: string, winnerTeamId: string) => Promise<void>
+  fetchVenues: (tournamentId: string) => Promise<void>
+  addVenue: (tournamentId: string, name: string, address?: string) => Promise<Venue | null>
+  removeVenue: (venueId: string) => Promise<void>
 }
 
 export const useTournamentStore = create<TournamentState>((set, get) => ({
@@ -149,6 +153,7 @@ export const useTournamentStore = create<TournamentState>((set, get) => ({
   currentTournament: null,
   tournamentTeams: [],
   tournamentMatches: [],
+  venues: [],
   loading: false,
   error: null,
 
@@ -449,6 +454,50 @@ export const useTournamentStore = create<TournamentState>((set, get) => ({
       })
     } catch (err) {
       set({ error: err instanceof Error ? err.message : 'Failed to advance winner' })
+    }
+  },
+
+  async fetchVenues(tournamentId) {
+    if (!isSupabaseConfigured) return
+    try {
+      const { data, error } = await db
+        .from('venues')
+        .select('*')
+        .eq('tournament_id', tournamentId)
+        .order('created_at', { ascending: true })
+      if (error) throw new Error(error.message as string)
+      set({ venues: (data as Venue[]) ?? [] })
+    } catch (err) {
+      set({ error: err instanceof Error ? err.message : 'Failed to fetch venues' })
+    }
+  },
+
+  async addVenue(tournamentId, name, address) {
+    if (!isSupabaseConfigured) return null
+    try {
+      const { data, error } = await db
+        .from('venues')
+        .insert({ tournament_id: tournamentId, name, address: address ?? null })
+        .select()
+        .single()
+      if (error) throw new Error(error.message as string)
+      const venue = data as Venue
+      set({ venues: [...get().venues, venue] })
+      return venue
+    } catch (err) {
+      set({ error: err instanceof Error ? err.message : 'Failed to add venue' })
+      return null
+    }
+  },
+
+  async removeVenue(venueId) {
+    if (!isSupabaseConfigured) return
+    try {
+      const { error } = await db.from('venues').delete().eq('id', venueId)
+      if (error) throw new Error(error.message as string)
+      set({ venues: get().venues.filter((v) => v.id !== venueId) })
+    } catch (err) {
+      set({ error: err instanceof Error ? err.message : 'Failed to remove venue' })
     }
   },
 }))
