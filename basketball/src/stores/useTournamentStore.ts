@@ -69,6 +69,36 @@ export function computeStandings(
   return rows
 }
 
+export interface GroupStandings {
+  groupName: string | null  // null = single unnamed group
+  rows: StandingRow[]
+}
+
+export function computeStandingsByGroup(
+  teams: Team[],
+  matches: Match[],
+  tournamentTeams: TournamentTeam[],
+): GroupStandings[] {
+  // Collect distinct group names in sorted order (null last)
+  const groupNames = Array.from(new Set(tournamentTeams.map((tt) => tt.group_name)))
+    .sort((a, b) => {
+      if (a === null) return 1
+      if (b === null) return -1
+      return a.localeCompare(b)
+    })
+
+  return groupNames.map((groupName) => {
+    const groupTeamIds = new Set(
+      tournamentTeams.filter((tt) => tt.group_name === groupName).map((tt) => tt.team_id)
+    )
+    const groupTT = tournamentTeams.filter((tt) => tt.group_name === groupName)
+    const groupMatches = matches.filter(
+      (m) => groupTeamIds.has(m.home_team_id) && groupTeamIds.has(m.away_team_id)
+    )
+    return { groupName, rows: computeStandings(teams, groupMatches, groupTT) }
+  })
+}
+
 // ─── Round-robin schedule generator ─────────────────────────────────────────
 
 /**

@@ -101,7 +101,7 @@ vi.mock('../../src/lib/supabase', () => {
 })
 
 // Import after mocks
-import { useTournamentStore, computeStandings, generateRoundRobinPairs, bracketRounds, slotsPerRound } from '../../src/stores/useTournamentStore'
+import { useTournamentStore, computeStandings, computeStandingsByGroup, generateRoundRobinPairs, bracketRounds, slotsPerRound } from '../../src/stores/useTournamentStore'
 import type { Tournament, TournamentTeam, TournamentMatch, Team, Match } from '../../src/types'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -451,5 +451,80 @@ describe('generateKnockoutDraw', () => {
     const finalCount = phases.filter((p) => p === 'final').length
     expect(sfCount).toBe(2)
     expect(finalCount).toBe(1)
+  })
+})
+
+// ─── computeStandingsByGroup ──────────────────────────────────────────────────
+
+describe('computeStandingsByGroup', () => {
+  function makeTeam(id: string, name: string): import('../../src/types').Team {
+    return { id, name, nickname: null, badge_url: null, city_district: null, created_at: '' }
+  }
+  function makeTT(teamId: string, groupName: string | null): import('../../src/types').TournamentTeam {
+    return { id: `tt-${teamId}`, tournament_id: 't-1', team_id: teamId, group_name: groupName, created_at: '' }
+  }
+  function makeMatch(id: string, home: string, away: string, homeScore: number, awayScore: number): import('../../src/types').Match {
+    return { id, tournament_id: 't-1', phase: 'group', home_team_id: home, away_team_id: away, home_score: homeScore, away_score: awayScore, status: 'finished', quarter: 4, time_remaining_seconds: 0, scorekeeper_claimed_by: null, started_at: null, finished_at: null, created_at: '', venue_id: null, scheduled_at: null, not_played: false }
+  }
+
+  it('returns one group when all group_names are null (single-group tournament)', () => {
+    const teams = [makeTeam('a', 'A'), makeTeam('b', 'B')]
+    const tts = [makeTT('a', null), makeTT('b', null)]
+    const result = computeStandingsByGroup(teams, [], tts)
+    expect(result).toHaveLength(1)
+    expect(result[0].groupName).toBeNull()
+  })
+
+  it('returns two groups for a 2-group tournament sorted A, B', () => {
+    const teams = [makeTeam('a', 'A'), makeTeam('b', 'B'), makeTeam('c', 'C'), makeTeam('d', 'D')]
+    const tts = [makeTT('a', 'A'), makeTT('b', 'A'), makeTT('c', 'B'), makeTT('d', 'B')]
+    const result = computeStandingsByGroup(teams, [], tts)
+    expect(result).toHaveLength(2)
+    expect(result[0].groupName).toBe('A')
+    expect(result[1].groupName).toBe('B')
+  })
+
+  it('returns four groups for a 4-group tournament sorted A, B, C, D', () => {
+    const teams = ['a','b','c','d','e','f','g','h','i','j','k','l'].map((id) => makeTeam(id, id.toUpperCase()))
+    const tts = [
+      makeTT('a','A'), makeTT('b','A'), makeTT('c','A'),
+      makeTT('d','B'), makeTT('e','B'), makeTT('f','B'),
+      makeTT('g','C'), makeTT('h','C'), makeTT('i','C'),
+      makeTT('j','D'), makeTT('k','D'), makeTT('l','D'),
+    ]
+    const result = computeStandingsByGroup(teams, [], tts)
+    expect(result).toHaveLength(4)
+    expect(result.map((g) => g.groupName)).toEqual(['A','B','C','D'])
+    expect(result[0].rows).toHaveLength(3)
+  })
+
+  it('only counts cross-group matches within each group', () => {
+    const teams = [makeTeam('a','A'), makeTeam('b','A'), makeTeam('c','B'), makeTeam('d','B')]
+    const tts = [makeTT('a','A'), makeTT('b','A'), makeTT('c','B'), makeTT('d','B')]
+    const matches = [
+      makeMatch('m1', 'a', 'b', 10, 5),  // Group A match — a wins
+      makeMatch('m2', 'c', 'd', 8, 12),  // Group B match — d wins
+      makeMatch('m3', 'a', 'c', 6, 6),   // cross-group — should be ignored
+    ]
+    const result = computeStandingsByGroup(teams, matches, tts)
+    const groupA = result.find((g) => g.groupName === 'A')!
+    const teamA = groupA.rows.find((r) => r.team.id === 'a')!
+    expect(teamA.played).toBe(1)  // only m1, not m3
+    expect(teamA.wins).toBe(1)
+  })
+
+  it('each group standings sorted by points desc', () => {
+    const teams = [makeTeam('a','A'), makeTeam('b','A'), makeTeam('c','A')]
+    const tts = [makeTT('a','A'), makeTT('b','A'), makeTT('c','A')]
+    const matches = [
+      makeMatch('m1','a','b',10,5),
+      makeMatch('m2','a','c',8,4),
+      makeMatch('m3','b','c',6,7),
+    ]
+    const result = computeStandingsByGroup(teams, matches, tts)
+    const rows = result[0].rows
+    expect(rows[0].team.id).toBe('a')  // 4 pts
+    expect(rows[1].team.id).toBe('c')  // 2 pts
+    expect(rows[2].team.id).toBe('b')  // 0 pts
   })
 })
