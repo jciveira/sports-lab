@@ -34,29 +34,35 @@ See [docs/BASKETBALL_RULES.md](docs/BASKETBALL_RULES.md) for the full rule set d
 |---|---|---|
 | Platform | PWA (installable web app) | No app store friction, works on any phone/tablet |
 | Frontend | React + Vite + TypeScript | Consistent with handball-lab |
-| UI | Tailwind CSS + shadcn/ui | Mobile-first, consistent across sports |
+| UI | Tailwind CSS v4 + `bbl-*` semantic tokens | Design tokens via `@theme` block — no hardcoded colors anywhere |
 | Backend | Supabase (Postgres + Realtime + Auth) | Separate project from handball — clean data isolation |
 | Offline | IndexedDB (Dexie.js) + sync on reconnect | Game venues may lose signal |
 | Auth | Hardcoded PIN gate for admin (SHA-256, sessionStorage) | Consistent with handball-lab AdminGuard pattern — no Supabase Auth |
+| Routing | Shell pattern with `<Outlet />` | `ViewerShell` (4 viewer tabs) + `AdminShell` (4 admin tabs) wrap routes — tab bar is owned by shell, not pages |
+| Zustand selectors | Individual selectors only | Inline object selectors `(s) => ({ a: s.a })` cause infinite re-renders in Zustand v5 — always use 3 separate selectors |
 
 ## Access Model
 
 ```
-Home screen (public — no auth)
-  - Viewer section always visible: Partidos, Torneos, Jugadores
-  - Admin section collapsible → requires PIN 1234
+ViewerShell (public — bottom tab bar: Partidos / Torneos / Jugadores / Más)
+  /partidos         — match list
+  /torneos          — tournament list
+  /jugadores        — player list (links to /player/:id/card)
+  /mas              — settings link + admin entry
 
-Admin (PIN-gated, sessionStorage)
-  - Creates tournaments, matches, teams, players
-  - Full control over everything
+Detail pages (no tab bar, BackButton instead)
+  /match/:id/view           — live scoreboard (Viewer)
+  /match/:id                — scorekeeper UI (first-come first-served)
+  /tournament/:id           — standings + schedule
+  /tournament/:id/bracket   — knockout bracket
+  /player/:id/card          — FIFA-style player card
 
-Scorekeeper (1 per match, first come first served)
-  - First visitor to /match/:id claims it directly — no code gate
-  - Controls: score, clock, fouls, timeouts, quarter transitions
-
-Viewers (public)
-  - /match/:id/view — live scoreboard, no auth required
-  - /tournament/:id — standings + bracket, no auth required
+AdminGuard → AdminShell (PIN-gated, tab bar: Partidos / Torneos / Equipos / Jugadores)
+  /admin/partidos   — match management
+  /admin/torneos    — tournament management
+  /admin/equipos    — team management
+  /admin/jugadores  — player management
+  Tab bar hidden automatically on detail routes (e.g. /admin/match/:id)
 ```
 
 ## Data Model
@@ -125,28 +131,94 @@ match_events
 - PlayerAttributes type: tiro, pase, defensa, fisico, stamina, vision (0–99) (#1)
 - Admin RosterSection: add form, inline attribute editor, confirmation on remove (#2)
 
+## Design Tokens
+
+All colors defined in `src/index.css` via Tailwind v4 `@theme` block. Use `bbl-*` utility classes everywhere — never raw hex or Tailwind palette names.
+
+| Token | Usage |
+|---|---|
+| `bbl-bg` | Page background (#0f1117) |
+| `bbl-surface` | Card / panel background |
+| `bbl-surface-light` | Elevated surface |
+| `bbl-border` | Borders and dividers |
+| `bbl-text` | Primary text |
+| `bbl-text-muted` | Secondary / label text |
+| `bbl-accent` | Orange brand accent (#f97316) |
+| `bbl-score` | Score display |
+| `bbl-clock` | Clock / error |
+| `bbl-warning` | Warning banners |
+| `bbl-team-home` | Home team color |
+| `bbl-team-away` | Away team color |
+
+## Shared Components
+
+| Component | File | Description |
+|---|---|---|
+| `ViewerShell` | `components/ViewerShell.tsx` | Fixed bottom tab bar for viewer routes |
+| `AdminShell` | `components/AdminShell.tsx` | Fixed bottom tab bar for admin routes; hides on detail pages |
+| `BackButton` | `components/BackButton.tsx` | Absolutely positioned top-left; `to` prop or `navigate(-1)` |
+| `BugReportButton` | `components/BugReportButton.tsx` | Fixed bottom-right; modal bug report sheet |
+| `ReloadPrompt` | `components/ReloadPrompt.tsx` | PWA update toast; suppressed on /match/* |
+| `AdminGuard` | `components/AdminGuard.tsx` | PIN gate (SHA-256, sessionStorage); wraps admin routes |
+
 ## Project Structure
 
 ```
 basketball/
   src/
     components/
-      scoreboard/
-      stats/
-      tournament/
-      players/
-      ui/
+      ViewerShell.tsx   — viewer tab bar shell
+      AdminShell.tsx    — admin tab bar shell
+      BackButton.tsx    — shared back navigation
+      BugReportButton.tsx
+      ReloadPrompt.tsx
+      AdminGuard.tsx
     lib/
       supabase.ts
       offline.ts
       rules.ts
+      bug-reports.ts
     hooks/
     pages/
+      PartidosTab.tsx   — /partidos
+      TorneosTab.tsx    — /torneos
+      JugadoresTab.tsx  — /jugadores
+      MasTab.tsx        — /mas
+      ViewerPage.tsx    — /match/:id/view
+      ScorekeeperPage.tsx
+      PlayerCardPage.tsx
+      TournamentPage.tsx
+      TournamentBracketPage.tsx
+      HomePage.tsx      — legacy entry (redirects to /partidos)
+      admin/
+        AdminPage.tsx   — /admin/partidos
+        AdminTorneosPage.tsx
+        AdminEquiposPage.tsx
+        AdminJugadoresPage.tsx
+    stores/
     types/
+  e2e/
+    smoke.spec.ts
+    regression.spec.ts
+  tests/
+    unit/
+    component/
   docs/
     BASKETBALL_RULES.md
+  playwright.config.ts
   public/
 ```
+
+## Phase 5 — UX Polish ✅ COMPLETE
+
+- [x] Design tokens — `@theme` block in `index.css`, all colors as `bbl-*` semantic utilities (#18)
+- [x] `ViewerShell` — fixed bottom tab bar (Partidos / Torneos / Jugadores / Más), `<Outlet />` pattern (#18)
+- [x] `AdminShell` — admin tab bar, auto-hides on detail routes (#18)
+- [x] `BackButton`, `BugReportButton`, `ReloadPrompt` shared components (#18)
+- [x] Tab pages — `PartidosTab`, `TorneosTab`, `JugadoresTab`, `MasTab` (#18)
+- [x] Admin sub-pages stubs — `AdminTorneosPage`, `AdminEquiposPage`, `AdminJugadoresPage` (#18)
+- [x] All pages ported to `bbl-*` tokens + Spanish copy (#18)
+- [x] Playwright E2E infrastructure created — smoke (8 tests) + regression (4 tests) (#18)
 
 ## Tech Stack
 
@@ -154,9 +226,9 @@ basketball/
 |---|---|
 | Framework | React 19 + Vite |
 | Language | TypeScript |
-| Styling | Tailwind CSS 4 |
-| Components | shadcn/ui |
+| Styling | Tailwind CSS v4 — `bbl-*` semantic design tokens via `@theme` |
 | Backend | Supabase (separate project from handball) |
-| Routing | React Router 7 |
-| State | Zustand + Supabase Realtime |
+| Routing | React Router 7 — shell pattern with `<Outlet />` |
+| State | Zustand v5 + Supabase Realtime |
+| Tests | Vitest + React Testing Library + Playwright |
 | Deploy | Vercel — `basketball-lab-amber.vercel.app` (root dir: `basketball/`) |

@@ -9,7 +9,7 @@ Built as a family learning project — designed to be used during real games and
 | Sport | Status | App |
 |-------|--------|-----|
 | **Handball** | Phase 1 + Phase 3 + Phase 4 complete | `/` (repo root) |
-| **Basketball** | Phase 1 + Phase 3 + Phase 4 complete | `basketball/` |
+| **Basketball** | Phase 1 + Phase 3 + Phase 4 + Phase 5 (UX Polish) complete | `basketball/` |
 
 ---
 
@@ -41,7 +41,18 @@ See [`basketball/ARCHITECTURE.md`](basketball/ARCHITECTURE.md) and [`basketball/
 - [x] `PlayerAttributes` type — tiro, pase, defensa, fisico, stamina, vision (0–99) (#1)
 - [x] Admin `RosterSection` — team selector, add-player form, inline attribute editor (#2)
 
-**Basketball tests:** 90 unit tests (8 files)
+**Phase 5 shipped (UX Polish):**
+- [x] Design tokens — `@theme` block with 12 `bbl-*` semantic colors, dark orange palette (#18)
+- [x] `ViewerShell` — fixed bottom tab bar (Partidos / Torneos / Jugadores / Más) with `<Outlet />` (#18)
+- [x] `AdminShell` — admin tab bar, auto-hides on detail routes like `/admin/match/:id` (#18)
+- [x] `BackButton`, `BugReportButton`, `ReloadPrompt` — shared components on all pages (#18)
+- [x] Tab pages: `PartidosTab`, `TorneosTab`, `JugadoresTab`, `MasTab` (#18)
+- [x] Admin sub-pages stubs: `AdminTorneosPage`, `AdminEquiposPage`, `AdminJugadoresPage` (#18)
+- [x] All pages ported to `bbl-*` tokens + Spanish copy throughout (#18)
+- [x] Playwright E2E infrastructure — `playwright.config.ts`, smoke (8 tests) + regression (4 tests) (#18)
+- [x] Zustand v5 infinite re-render fix — individual selectors instead of inline object selectors (#18)
+
+**Basketball tests:** 97 unit tests (9 files) + 8 smoke + 4 regression = 109 total
 
 **Planned — Phase 2:**
 - **Stat Tracking** — tag goals, assists, blocks, rebounds per player
