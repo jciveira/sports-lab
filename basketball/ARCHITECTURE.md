@@ -37,22 +37,26 @@ See [docs/BASKETBALL_RULES.md](docs/BASKETBALL_RULES.md) for the full rule set d
 | UI | Tailwind CSS + shadcn/ui | Mobile-first, consistent across sports |
 | Backend | Supabase (Postgres + Realtime + Auth) | Separate project from handball — clean data isolation |
 | Offline | IndexedDB (Dexie.js) + sync on reconnect | Game venues may lose signal |
-| Auth | Code-based access (no ceremony for scorekeeper) | Consistent with handball-lab post-#142 |
+| Auth | Hardcoded PIN gate for admin (SHA-256, sessionStorage) | Consistent with handball-lab AdminGuard pattern — no Supabase Auth |
 
 ## Access Model
 
 ```
-Admin (1 account)
+Home screen (public — no auth)
+  - Viewer section always visible: Partidos, Torneos, Jugadores
+  - Admin section collapsible → requires PIN 1234
+
+Admin (PIN-gated, sessionStorage)
   - Creates tournaments, matches, teams, players
   - Full control over everything
 
 Scorekeeper (1 per match, first come first served)
-  - First visitor to /match/:id/scorekeeper claims it directly — no code gate
+  - First visitor to /match/:id claims it directly — no code gate
   - Controls: score, clock, fouls, timeouts, quarter transitions
 
-Viewers (shared code per tournament/match)
-  - Read-only live view of scoreboard
-  - Access match history, player cards, tournament brackets
+Viewers (public)
+  - /match/:id/view — live scoreboard, no auth required
+  - /tournament/:id — standings + bracket, no auth required
 ```
 
 ## Data Model
@@ -155,4 +159,4 @@ basketball/
 | Backend | Supabase (separate project from handball) |
 | Routing | React Router 7 |
 | State | Zustand + Supabase Realtime |
-| Deploy | Vercel (separate project — TBD) |
+| Deploy | Vercel — `basketball-lab-amber.vercel.app` (root dir: `basketball/`) |

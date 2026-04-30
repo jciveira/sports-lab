@@ -1,10 +1,9 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Trophy, Users, Radio, Settings, ChevronDown, ChevronUp, Eye } from 'lucide-react'
+import { Trophy, Users, Settings, ChevronDown, ChevronUp, Eye } from 'lucide-react'
 
 const viewerLinks = [
-  { to: '/match', icon: Radio, label: 'Partidos', desc: 'Partidos en directo y resultados' },
-  { to: '/tournaments', icon: Trophy, label: 'Torneos', desc: 'Descubre torneos y resultados' },
+  { to: '/tournament', icon: Trophy, label: 'Torneos', desc: 'Descubre torneos y resultados' },
   { to: '/players', icon: Users, label: 'Jugadores', desc: 'Fichas y estadísticas' },
 ] as const
 
