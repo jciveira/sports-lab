@@ -51,8 +51,17 @@ See [`basketball/ARCHITECTURE.md`](basketball/ARCHITECTURE.md) and [`basketball/
 - [x] All pages ported to `bbl-*` tokens + Spanish copy throughout (#18)
 - [x] Playwright E2E infrastructure — `playwright.config.ts`, smoke (8 tests) + regression (4 tests) (#18)
 - [x] Zustand v5 infinite re-render fix — individual selectors instead of inline object selectors (#18)
+- [x] Costa Dorada seed — Plata-2 (8 teams, 2 groups) + Bronce (12 teams, 4 groups) loaded via seed script (#19)
+- [x] ViewerPage team badge watermark — `opacity-[0.07]` centered background, `pointer-events-none`, matches handball pattern (#21)
+- [x] Schema additions — `venues` table + `venue_id` FK, `scheduled_at` and `not_played` on matches; `Venue` type; `useTournamentStore` venue CRUD; `useMatchesStore.updateMatch` (#22)
+- [x] MasTab full rebuild — 4-state PWA install prompt (Android prompt/tip/iOS tip/desktop tip), suggestions link → `/suggestions` (Supabase), font size toggle (`--bbl-score-scale`), admin link, clear cache with confirmation dialog, iOS install guide modal (#20)
+- [x] `/suggestions` route — standalone page with textarea form, Supabase submit, sent/error states (#20)
+- [x] TournamentPage per-group standings — `computeStandingsByGroup()` N-group generic (null→single group, A+B→2, A+B+C+D→4); one section per group with own standings table + filtered match list; Realtime subscription preserved (#24)
+- [x] `CollapsibleSection` component — `defaultOpen` prop, `aria-expanded`, ChevronDown rotation, `min-h-11` touch target (#25)
+- [x] TournamentPage collapsibles — each group's Clasificación (open) and Calendario (closed by default) wrapped in `CollapsibleSection` (#25)
+- [x] AdminPage collapsibles — Plantilla, Equipos, Partidos, Torneos each wrapped in `CollapsibleSection` (#25)
 
-**Basketball tests:** 97 unit tests (9 files) + 8 smoke + 4 regression = 109 total
+**Basketball tests:** 147 unit tests (12 files) + 9 smoke + 4 regression = 160 total
 
 **Planned — Phase 2:**
 - **Stat Tracking** — tag goals, assists, blocks, rebounds per player
