@@ -10,11 +10,9 @@ const STATUS_LABEL: Record<string, string> = {
 }
 
 export function TorneosTab() {
-  const { tournaments, loading, fetchTournaments } = useTournamentStore((s) => ({
-    tournaments: s.tournaments,
-    loading: s.loading,
-    fetchTournaments: s.fetchTournaments,
-  }))
+  const tournaments = useTournamentStore((s) => s.tournaments)
+  const loading = useTournamentStore((s) => s.loading)
+  const fetchTournaments = useTournamentStore((s) => s.fetchTournaments)
 
   useEffect(() => {
     void fetchTournaments()
