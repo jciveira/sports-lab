@@ -57,6 +57,16 @@ test.describe('Smoke — basketball shell + new routes', () => {
     expect(errors).toHaveLength(0)
   })
 
+  test('/suggestions page loads', async ({ page }) => {
+    const errors: string[] = []
+    page.on('pageerror', (err) => errors.push(err.message))
+
+    await page.goto('/suggestions')
+    await expect(page.getByRole('heading', { name: 'Sugerencias' })).toBeVisible()
+    await expect(page.getByPlaceholder(/sugerencia/i)).toBeVisible()
+    expect(errors).toHaveLength(0)
+  })
+
   test('/admin shows PIN gate (AdminGuard)', async ({ page }) => {
     const errors: string[] = []
     page.on('pageerror', (err) => errors.push(err.message))
