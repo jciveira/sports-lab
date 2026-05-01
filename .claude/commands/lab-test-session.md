@@ -212,7 +212,7 @@ git merge --no-ff $BRANCH -m "merge: <short description> #<number>"
   - Use temp dir with orphan commit, personal git identity (`jciveira <jonlecarre@gmail.com>`)
   - **Run `npm ci && npm run build` in the temp dir before pushing** — catches dependency issues Vercel would hit
   - If the clean build fails, fix the issue on main first, then re-mirror
-  - Push to `git@github-personal:jciveira/handball-lab.git`
+  - Push to `git@github-personal:jciveira/sports-lab.git`
 
 ## 6. Bug fix protocol
 When a bug is found:
