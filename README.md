@@ -64,8 +64,11 @@ See [`basketball/ARCHITECTURE.md`](basketball/ARCHITECTURE.md) and [`basketball/
 - [x] `basketball/src/lib/matches.ts` — `formatMatchDate`, `sortByScheduledAt`, `toDatetimeLocal` helpers (#33)
 - [x] `TournamentBracketPage` — actual scores from linked matches, winner highlight, venue/date chips, podium section after final (#31)
 - [x] `ViewerPage` — connection status bar (Wifi/WifiOff icon), team badges above score, "Sin marcador activo" notice (#30)
+- [x] Missing Supabase migrations applied — `venues` table + `venue_id` FK, `matches.scheduled_at` + `not_played`, `players.attributes` (jsonb); `004_players_attributes.sql` added to repo (#34)
+- [x] PartidosTab grouped by status — En curso (running/paused/quarter_break) / Programados / Pasados; empty sections hidden; active+past link to viewer; sorted by `created_at` asc within each section (#35)
+- [x] Admin scorekeeper bypass — `?admin=1` on AdminPage match links; ScorekeeperPage skips claim gate and DB write when param present; "Reclamar marcador" hidden for admin (#36)
 
-**Basketball tests:** 178 unit tests (16 files) + 9 smoke + 4 regression = 191 total
+**Basketball tests:** 199 unit tests (19 files) + 9 smoke + 4 regression = 212 total
 
 **Planned — Phase 2:**
 - **Stat Tracking** — tag goals, assists, blocks, rebounds per player
