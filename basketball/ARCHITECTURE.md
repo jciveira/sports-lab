@@ -178,6 +178,7 @@ basketball/
       offline.ts
       rules.ts
       bug-reports.ts
+      matches.ts        — formatMatchDate, sortByScheduledAt, toDatetimeLocal
     hooks/
     pages/
       PartidosTab.tsx   — /partidos

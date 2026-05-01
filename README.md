@@ -60,8 +60,12 @@ See [`basketball/ARCHITECTURE.md`](basketball/ARCHITECTURE.md) and [`basketball/
 - [x] `CollapsibleSection` component — `defaultOpen` prop, `aria-expanded`, ChevronDown rotation, `min-h-11` touch target (#25)
 - [x] TournamentPage collapsibles — each group's Clasificación (open) and Calendario (closed by default) wrapped in `CollapsibleSection` (#25)
 - [x] AdminPage collapsibles — Plantilla, Equipos, Partidos, Torneos each wrapped in `CollapsibleSection` (#25)
+- [x] TournamentPage match rows — venue chip (Google Maps link when address set), formatted date/time, not-played strikethrough, team badges (#32, #28)
+- [x] `basketball/src/lib/matches.ts` — `formatMatchDate`, `sortByScheduledAt`, `toDatetimeLocal` helpers (#33)
+- [x] `TournamentBracketPage` — actual scores from linked matches, winner highlight, venue/date chips, podium section after final (#31)
+- [x] `ViewerPage` — connection status bar (Wifi/WifiOff icon), team badges above score, "Sin marcador activo" notice (#30)
 
-**Basketball tests:** 147 unit tests (12 files) + 9 smoke + 4 regression = 160 total
+**Basketball tests:** 178 unit tests (16 files) + 9 smoke + 4 regression = 191 total
 
 **Planned — Phase 2:**
 - **Stat Tracking** — tag goals, assists, blocks, rebounds per player
