@@ -76,11 +76,11 @@ describe('AdminPage — activate match button', () => {
     expect(screen.getByText('Activar')).toBeTruthy()
   })
 
-  it('Activar button links to scorekeeper route', () => {
+  it('Activar button links to scorekeeper route with admin param', () => {
     useMatchesStore.setState({ matches: [makeMatch('m1', 'scheduled')], loading: false, error: null })
     renderAdmin()
     const link = screen.getByText('Activar').closest('a')
-    expect(link?.getAttribute('href')).toBe('/match/m1')
+    expect(link?.getAttribute('href')).toBe('/match/m1?admin=1')
   })
 
   it('shows Continuar button for running match', () => {

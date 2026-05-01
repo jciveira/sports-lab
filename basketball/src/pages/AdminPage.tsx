@@ -152,7 +152,7 @@ function MatchesSection({ matches, teams, loading }: { matches: MatchWithDuratio
                 </div>
                 {match.status !== 'finished' && (
                   <Link
-                    to={`/match/${match.id}`}
+                    to={`/match/${match.id}?admin=1`}
                     className={`flex items-center justify-center px-4 py-2.5 rounded-xl font-bold text-sm min-h-11 active:scale-95 transition-transform ${
                       match.status === 'scheduled'
                         ? 'bg-bbl-accent text-bbl-bg'
