@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useParams } from 'react-router-dom'
+import { useParams, useSearchParams } from 'react-router-dom'
 import { useMatchStore, FOUL_BONUS_THRESHOLD } from '../stores/useMatchStore'
 import { flushPendingEvents } from '../lib/offlineSync'
 
@@ -127,6 +127,9 @@ function QuarterBreakOverlay({
 
 export default function ScorekeeperPage() {
   const { id: matchId } = useParams<{ id: string }>()
+  const [searchParams] = useSearchParams()
+  const isAdmin = searchParams.get('admin') === '1'
+
   const {
     match,
     events,
@@ -156,6 +159,12 @@ export default function ScorekeeperPage() {
   useEffect(() => {
     if (matchId) loadMatch(matchId)
   }, [matchId, loadMatch])
+
+  useEffect(() => {
+    if (!isAdmin && matchId && match && !claimed && !match.scorekeeper_claimed_by) {
+      claimScorekeeper(matchId)
+    }
+  }, [isAdmin, matchId, match, claimed, claimScorekeeper])
 
   useEffect(() => {
     function handleOnline() {
@@ -233,7 +242,8 @@ export default function ScorekeeperPage() {
     )
   }
 
-  if (!claimed) {
+  // Non-admin with unclaimed match: show claim gate
+  if (!isAdmin && !claimed) {
     return (
       <div className="min-h-screen bg-bbl-bg text-bbl-text flex flex-col items-center justify-center gap-6 px-6">
         <div className="text-center">
